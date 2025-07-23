@@ -5,7 +5,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Clock, CheckCircle, XCircle, Eye, MessageSquare } from "lucide-react";
@@ -41,8 +47,10 @@ interface CancellationRequest {
 }
 
 export default function OrderCancellations() {
-  const [selectedRequest, setSelectedRequest] = useState<CancellationRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] =
+    useState<CancellationRequest | null>(null);
   const [adminResponse, setAdminResponse] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -53,29 +61,33 @@ export default function OrderCancellations() {
   });
 
   const processCancellationMutation = useMutation({
-    mutationFn: async ({ 
-      orderId, 
-      action, 
-      adminResponse 
-    }: { 
-      orderId: number; 
+    mutationFn: async ({
+      orderId,
+      action,
+      adminResponse,
+    }: {
+      orderId: number;
       action: "approve" | "reject";
       adminResponse?: string;
     }) => {
       return apiRequest(`/api/admin/orders/${orderId}/process-cancellation`, {
         method: "POST",
-        body: JSON.stringify({ action, adminResponse }),
+        body: JSON.stringify({ action, rejectionReason: adminResponse }),
       });
     },
     onSuccess: (_, variables) => {
-      const actionText = variables.action === "approve" ? "approved" : "rejected";
+      const actionText =
+        variables.action === "approve" ? "approved" : "rejected";
       toast({
         title: "Request Processed",
         description: `Order cancellation request has been ${actionText}`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders/pending/cancellation"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/orders/pending/cancellation"],
+      });
       setSelectedRequest(null);
       setAdminResponse("");
+      setIsModalOpen(false); // Close the modal
     },
     onError: (error: any) => {
       toast({
@@ -155,7 +167,9 @@ export default function OrderCancellations() {
                     <Badge className={getStatusColor(request.status)}>
                       {request.status.replace("_", " ").toUpperCase()}
                     </Badge>
-                    <span className="text-lg font-semibold">₹{request.total.toFixed(2)}</span>
+                    <span className="text-lg font-semibold">
+                      ₹{request.total.toFixed(2)}
+                    </span>
                   </div>
                 </div>
               </CardHeader>
@@ -164,16 +178,41 @@ export default function OrderCancellations() {
                   <div>
                     <h4 className="font-semibold mb-2">Customer Information</h4>
                     <div className="space-y-1 text-sm">
-                      <p><strong>Name:</strong> {request.customerInfo?.name || request.user?.name || 'N/A'}</p>
-                      <p><strong>Email:</strong> {request.customerInfo?.email || request.user?.email || 'N/A'}</p>
-                      <p><strong>Phone:</strong> {request.customerInfo?.phone || 'N/A'}</p>
+                      <p>
+                        <strong>Name:</strong>{" "}
+                        {request.customerInfo?.name ||
+                          request.user?.name ||
+                          "N/A"}
+                      </p>
+                      <p>
+                        <strong>Email:</strong>{" "}
+                        {request.customerInfo?.email ||
+                          request.user?.email ||
+                          "N/A"}
+                      </p>
+                      <p>
+                        <strong>Phone:</strong>{" "}
+                        {request.customerInfo?.phone || "N/A"}
+                      </p>
                     </div>
                   </div>
                   <div>
                     <h4 className="font-semibold mb-2">Request Details</h4>
                     <div className="space-y-1 text-sm">
-                      <p><strong>Requested:</strong> {new Date(request.cancellationRequestedAt).toLocaleDateString()} at {new Date(request.cancellationRequestedAt).toLocaleTimeString()}</p>
-                      <p><strong>Reason:</strong> {request.cancellationRequestReason}</p>
+                      <p>
+                        <strong>Requested:</strong>{" "}
+                        {new Date(
+                          request.cancellationRequestedAt
+                        ).toLocaleDateString()}{" "}
+                        at{" "}
+                        {new Date(
+                          request.cancellationRequestedAt
+                        ).toLocaleTimeString()}
+                      </p>
+                      <p>
+                        <strong>Reason:</strong>{" "}
+                        {request.cancellationRequestReason}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -184,7 +223,9 @@ export default function OrderCancellations() {
                     <ul className="space-y-1 text-sm">
                       {request.items.map((item, index) => (
                         <li key={index} className="flex justify-between">
-                          <span>{item.product.name} × {item.quantity}</span>
+                          <span>
+                            {item.product.name} × {item.quantity}
+                          </span>
                           <span>₹{item.price.toFixed(2)}</span>
                         </li>
                       ))}
@@ -193,11 +234,17 @@ export default function OrderCancellations() {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Dialog>
+                  <Dialog
+                    open={isModalOpen && selectedRequest?.id === request.id}
+                    onOpenChange={setIsModalOpen}
+                  >
                     <DialogTrigger asChild>
-                      <Button 
+                      <Button
                         variant="outline"
-                        onClick={() => setSelectedRequest(request)}
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setIsModalOpen(true);
+                        }}
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         Review & Process
@@ -205,12 +252,18 @@ export default function OrderCancellations() {
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
-                        <DialogTitle>Process Cancellation Request - Order #HRV-{request.id}</DialogTitle>
+                        <DialogTitle>
+                          Process Cancellation Request - Order #HRV-{request.id}
+                        </DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                          <h4 className="font-semibold text-yellow-800 mb-2">Customer's Reason:</h4>
-                          <p className="text-yellow-700">{request.cancellationRequestReason}</p>
+                          <h4 className="font-semibold text-yellow-800 mb-2">
+                            Customer's Reason:
+                          </h4>
+                          <p className="text-yellow-700">
+                            {request.cancellationRequestReason}
+                          </p>
                         </div>
 
                         <div>
@@ -227,23 +280,39 @@ export default function OrderCancellations() {
                           />
                         </div>
 
-                        <div className="flex gap-2 pt-4">
+                        <div className="flex flex-row justify-center gap-2 pt-4 ">
                           <Button
                             onClick={() => handleProcessRequest("approve")}
                             disabled={processCancellationMutation.isPending}
                             className="bg-red-600 hover:bg-red-700"
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            {processCancellationMutation.isPending ? "Processing..." : "Approve Cancellation"}
+                            {processCancellationMutation.isPending
+                              ? "Processing..."
+                              : "Approve Cancellation"}
                           </Button>
                           <Button
                             variant="outline"
                             onClick={() => handleProcessRequest("reject")}
-                            disabled={processCancellationMutation.isPending}
+                            disabled={
+                              processCancellationMutation.isPending ||
+                              (adminResponse.trim().length > 0 &&
+                                adminResponse.trim().length < 5)
+                            }
                             className="border-gray-300"
                           >
                             <XCircle className="h-4 w-4 mr-2" />
                             Reject Request
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            onClick={() => {
+                              setSelectedRequest(null);
+                              setAdminResponse("");
+                              setIsModalOpen(false);
+                            }}
+                          >
+                            Cancel
                           </Button>
                         </div>
                       </div>

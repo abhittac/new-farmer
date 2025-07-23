@@ -12,9 +12,22 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Link } from "wouter";
-import { Package, Calendar, CreditCard, MapPin, ArrowLeft, XCircle } from "lucide-react";
+import {
+  Package,
+  Calendar,
+  CreditCard,
+  MapPin,
+  ArrowLeft,
+  XCircle,
+} from "lucide-react";
 import placeholderImage from "../../../public/uploads/products/No-Image.png";
 import { formatSnakeCase } from "@/utils/formatSnakeCase";
 import { useToast } from "@/hooks/use-toast";
@@ -95,6 +108,7 @@ export default function OrderHistory() {
   const queryClient = useQueryClient();
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const {
     data: orderHistory,
@@ -159,7 +173,13 @@ export default function OrderHistory() {
 
   // Mutation for cancelling order
   const cancelOrderMutation = useMutation({
-    mutationFn: async ({ orderId, reason }: { orderId: number; reason: string }) => {
+    mutationFn: async ({
+      orderId,
+      reason,
+    }: {
+      orderId: number;
+      reason: string;
+    }) => {
       return apiRequest(`/api/orders/${orderId}/request-cancellation`, {
         method: "POST",
         body: JSON.stringify({ reason }),
@@ -168,10 +188,12 @@ export default function OrderHistory() {
     onSuccess: () => {
       toast({
         title: "Cancellation Request Submitted",
-        description: "Your order cancellation request has been submitted for review.",
+        description:
+          "Your order cancellation request has been submitted for review.",
       });
       setSelectedOrderId(null);
       setCancellationReason("");
+      setIsModalOpen(false); // Close the modal
       queryClient.invalidateQueries({ queryKey: ["/api/orders/history"] });
     },
     onError: (error: any) => {
@@ -305,13 +327,19 @@ export default function OrderHistory() {
                         {order.status.toUpperCase()}
                       </span>
                       {canCancelOrder(order.status) && (
-                        <Dialog>
+                        <Dialog
+                          open={isModalOpen && selectedOrderId === order.id}
+                          onOpenChange={setIsModalOpen}
+                        >
                           <DialogTrigger asChild>
                             <Button
                               variant="outline"
                               size="sm"
                               className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
-                              onClick={() => setSelectedOrderId(order.id)}
+                              onClick={() => {
+                                setSelectedOrderId(order.id);
+                                setIsModalOpen(true);
+                              }}
                             >
                               <XCircle className="h-4 w-4 mr-1" />
                               Cancel Order
@@ -319,11 +347,15 @@ export default function OrderHistory() {
                           </DialogTrigger>
                           <DialogContent className="max-w-md">
                             <DialogHeader>
-                              <DialogTitle>Cancel Order #{order.id}</DialogTitle>
+                              <DialogTitle>
+                                Cancel Order #{order.id}
+                              </DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
                               <p className="text-sm text-muted-foreground">
-                                Please provide a reason for cancelling this order. Your request will be reviewed by our team.
+                                Please provide a reason for cancelling this
+                                order. Your request will be reviewed by our
+                                team.
                               </p>
                               <div>
                                 <Label htmlFor="cancellation-reason">
@@ -333,7 +365,9 @@ export default function OrderHistory() {
                                   id="cancellation-reason"
                                   placeholder="Please explain why you want to cancel this order..."
                                   value={cancellationReason}
-                                  onChange={(e) => setCancellationReason(e.target.value)}
+                                  onChange={(e) =>
+                                    setCancellationReason(e.target.value)
+                                  }
                                   className="mt-2"
                                   rows={4}
                                 />
@@ -341,24 +375,26 @@ export default function OrderHistory() {
                               <div className="flex gap-2 pt-2">
                                 <Button
                                   onClick={handleCancelOrder}
-                                  disabled={!cancellationReason.trim() || cancelOrderMutation.isPending}
+                                  disabled={
+                                    !cancellationReason.trim() ||
+                                    cancelOrderMutation.isPending
+                                  }
                                   className="bg-red-600 hover:bg-red-700"
                                 >
                                   {cancelOrderMutation.isPending
                                     ? "Submitting..."
                                     : "Submit Cancellation Request"}
                                 </Button>
-                                <DialogTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedOrderId(null);
-                                      setCancellationReason("");
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
-                                </DialogTrigger>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedOrderId(null);
+                                    setCancellationReason("");
+                                    setIsModalOpen(false);
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
                               </div>
                             </div>
                           </DialogContent>
