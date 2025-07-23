@@ -310,7 +310,7 @@ export default function OrderHistory() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-red-600 border-red-300 hover:bg-red-50"
+                              className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
                               onClick={() => setSelectedOrderId(order.id)}
                             >
                               <XCircle className="h-4 w-4 mr-1" />
@@ -348,15 +348,17 @@ export default function OrderHistory() {
                                     ? "Submitting..."
                                     : "Submit Cancellation Request"}
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedOrderId(null);
-                                    setCancellationReason("");
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedOrderId(null);
+                                      setCancellationReason("");
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </DialogTrigger>
                               </div>
                             </div>
                           </DialogContent>
