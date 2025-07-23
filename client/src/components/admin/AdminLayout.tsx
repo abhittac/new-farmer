@@ -69,7 +69,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: "Orders",
       path: "/admin/orders",
     },
-
+ {
+      icon: <XCircle className="h-5 w-5" />,
+      label: "Order Cancellations",
+      path: "/admin/order-cancellations",
+    },
     {
       icon: <Users className="h-5 w-5" />,
       label: "Users",
