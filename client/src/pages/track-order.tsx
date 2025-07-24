@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MapPin, Package, Truck, CheckCircle } from "lucide-react";
+import { Link, useLocation } from "wouter";
 
 export default function TrackOrder() {
   const [orderNumber, setOrderNumber] = useState("");
@@ -15,7 +16,7 @@ export default function TrackOrder() {
   }>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
+  const [, navigate] = useLocation();
   // const handleSubmit = async (e: React.FormEvent) => {
   //   e.preventDefault();
   //   setError("");
@@ -93,6 +94,11 @@ export default function TrackOrder() {
       return;
     }
     setIsLoading(false);
+    window.open(
+      "https://www.indiapost.gov.in/vas/Pages/IndiaPostHome.aspx",
+      "_blank"
+    );
+
     // try {
     //   const res = await fetch("/api/orders/tracking", {
     //     method: "POST",
@@ -195,6 +201,7 @@ export default function TrackOrder() {
                 <div className="md:pt-[30px] relative -top-0">
                   <button
                     // type="submit"
+
                     // disabled={isLoading}
                     className="w-full px-4 py-2 bg-primary text-white font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-70 flex items-center justify-center"
                   >
