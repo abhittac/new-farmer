@@ -90,6 +90,8 @@ interface Order {
   billingAddress: string;
   paymentMethod: string;
   cancellationReason: string | null;
+  cancellationRequestReason: string | null;
+  cancellationRejectionReason: string | null;
   deliveredAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -97,6 +99,9 @@ interface Order {
   payment: Payment | null;
   appliedDiscounts: AppliedDiscount[];
   trackingId: string | null;
+  cancellationRequestedAt: string;
+  cancellationRejectedAt: string;
+  cancellationApprovedAt: string;
 }
 interface OrderHistoryResponse {
   orders: Order[];
@@ -261,7 +266,7 @@ export default function OrderHistory() {
   }
 
   const orders = orderHistory?.orders || [];
-
+  console.log("Orders:", orders);
   return (
     <div className="flex justify-center">
       <div className="container p-16 relative top-16 mb-8">
@@ -332,18 +337,20 @@ export default function OrderHistory() {
                           onOpenChange={setIsModalOpen}
                         >
                           <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
-                              onClick={() => {
-                                setSelectedOrderId(order.id);
-                                setIsModalOpen(true);
-                              }}
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Cancel Order
-                            </Button>
+                            {!order.cancellationRequestedAt && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
+                                onClick={() => {
+                                  setSelectedOrderId(order.id);
+                                  setIsModalOpen(true);
+                                }}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Cancel Order
+                              </Button>
+                            )}
                           </DialogTrigger>
                           <DialogContent className="max-w-md">
                             <DialogHeader>
@@ -574,12 +581,36 @@ export default function OrderHistory() {
                       </p>
                     </div>
                   )}
-
-                  {order.cancellationReason && (
-                    <div className="mt-4 p-3 bg-red-50 rounded-lg">
-                      <p className="text-sm text-red-800">
-                        <strong>Cancellation Reason:</strong>{" "}
-                        {order.cancellationReason}
+                  {/* If user has requested cancellation but admin hasn't responded yet */}
+                  {order.cancellationRequestedAt &&
+                    !order.cancellationApprovedAt &&
+                    !order.cancellationRejectedAt && (
+                      <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+                        <p className="text-sm text-yellow-800">
+                          <strong>Cancellation Request Sent:</strong> Your
+                          request to cancel this order has been submitted and is
+                          currently under review.
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Requested on:{" "}
+                          {new Date(
+                            order.cancellationRequestedAt
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  {/* Only show admin rejection reason if present */}
+                  {order.cancellationRejectedAt && (
+                    <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Cancellation Rejected:</strong>{" "}
+                        {order.cancellationRejectionReason}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Rejected on:{" "}
+                        {new Date(
+                          order.cancellationRejectedAt
+                        ).toLocaleString()}
                       </p>
                     </div>
                   )}

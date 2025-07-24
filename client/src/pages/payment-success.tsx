@@ -23,12 +23,12 @@ export default function PaymentSuccess() {
           <div className="flex justify-center mb-4">
             <CheckCircle className="h-16 w-16 text-green-500" />
           </div>
-          <CardTitle className="text-2xl">Payment Successful!</CardTitle>
+          <CardTitle className="text-2xl">Order Successful!</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="mb-4">
-            Your payment has been processed successfully. Thank you for your
-            purchase!
+            {/* Your payment has been processed successfully. */}
+            Thank you for your purchase!
           </p>
           <p className="text-sm text-gray-500">
             A confirmation email has been sent to your registered email address.
