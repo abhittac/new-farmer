@@ -391,7 +391,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center ">
             <div className="order-2 md:order-1 scroll-animation">
               <h3 className="font-heading text-forest text-2xl md:text-3xl font-semibold mb-4">
                 From Soil to Soul

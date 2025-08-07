@@ -72,7 +72,7 @@ export default function Contact() {
                 days.
               </p>
 
-              <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="flex">
                   <div className="mr-4">
                     <div className="w-12 h-12 bg-secondary/20 rounded-full flex items-center justify-center">
