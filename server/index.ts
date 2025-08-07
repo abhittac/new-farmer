@@ -43,6 +43,26 @@ app.use((req, res, next) => {
   next();
 });
 // Configure CORS for Replit environment
+const allowedOrigins = [
+  "http://localhost:5000",
+  "http://0.0.0.0:5000",
+  "https://new-farmer-e5cl.onrender.com",
+  "https://www.freshlyrooted.in",
+  "http://193.203.161.214",
+  "https://freshlyrooted.in"
+];
+
+// Add Replit domain patterns
+const isReplitDomain = (origin: string) => {
+  return (
+    origin &&
+    (origin.includes(".replit.dev") ||
+      origin.includes(".repl.co") ||
+      origin.includes(".replit.app") ||
+      origin.includes("replit.com"))
+  );
+};
+
 app.use(
   cors({
     origin: function (
