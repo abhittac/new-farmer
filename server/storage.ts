@@ -275,9 +275,6 @@ export class MemStorage implements IStorage {
     this.currentContactMessageId = 1;
 
     // Initialize with seed data
-    this.initializeProducts();
-    this.initializeFarmers();
-    this.initializeTestimonials();
   }
 
   private initializeProducts(): void {
@@ -975,10 +972,9 @@ export class DatabaseStorage implements IStorage {
     const featuredProducts = await db
       .select()
       .from(products)
-      .where(eq(products.featured, true));
+      .where(and(eq(products.featured, true), eq(products.isDeleted, false)));
     return featuredProducts;
   }
-
   async updateProductStock(
     productId: number,
     quantity: number

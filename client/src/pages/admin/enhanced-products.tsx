@@ -392,7 +392,9 @@ export default function EnhancedAdminProducts() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete product");
+        throw new Error(
+          "Cannot delete product associated with undelivered orders"
+        );
       }
 
       fetchProducts(currentPage);

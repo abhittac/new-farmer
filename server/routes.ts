@@ -154,6 +154,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Apply filters
       let filteredProducts = allProducts.filter((product) => {
         // Search filter
+
+        if (product.isDeleted) return false;
         if (search) {
           const searchTerm = search.toLowerCase();
           const matchesSearch =
@@ -1884,15 +1886,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Customer requests order cancellation
-  app.post(`${apiPrefix}/orders/:id/request-cancellation`, authenticate, async (req, res) => {
-    try {
-      const { requestOrderCancellation } = await import("./admin/orders");
-      await requestOrderCancellation(req, res);
-    } catch (error) {
-      console.error("Order cancellation request error:", error);
-      res.status(500).json({ message: "Failed to request order cancellation" });
+  app.post(
+    `${apiPrefix}/orders/:id/request-cancellation`,
+    authenticate,
+    async (req, res) => {
+      try {
+        const { requestOrderCancellation } = await import("./admin/orders");
+        await requestOrderCancellation(req, res);
+      } catch (error) {
+        console.error("Order cancellation request error:", error);
+        res
+          .status(500)
+          .json({ message: "Failed to request order cancellation" });
+      }
     }
-  });
+  );
 
   // Get cancelled orders
   app.get(`${apiPrefix}/orders/cancelled`, authenticate, async (req, res) => {
@@ -2915,25 +2923,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes for order cancellation management
-  app.get(`${apiPrefix}/admin/orders/pending/cancellation`, authenticate, async (req, res) => {
-    try {
-      const { getPendingCancellationRequests } = await import("./admin/orders");
-      await getPendingCancellationRequests(req, res);
-    } catch (error) {
-      console.error("Error fetching pending cancellation requests:", error);
-      res.status(500).json({ message: "Failed to fetch pending cancellation requests" });
+  app.get(
+    `${apiPrefix}/admin/orders/pending/cancellation`,
+    authenticate,
+    async (req, res) => {
+      try {
+        const { getPendingCancellationRequests } = await import(
+          "./admin/orders"
+        );
+        await getPendingCancellationRequests(req, res);
+      } catch (error) {
+        console.error("Error fetching pending cancellation requests:", error);
+        res
+          .status(500)
+          .json({ message: "Failed to fetch pending cancellation requests" });
+      }
     }
-  });
+  );
 
-  app.post(`${apiPrefix}/admin/orders/:id/process-cancellation`, authenticate, async (req, res) => {
-    try {
-      const { processCancellationRequest } = await import("./admin/orders");
-      await processCancellationRequest(req, res);
-    } catch (error) {
-      console.error("Error processing cancellation request:", error);
-      res.status(500).json({ message: "Failed to process cancellation request" });
+  app.post(
+    `${apiPrefix}/admin/orders/:id/process-cancellation`,
+    authenticate,
+    async (req, res) => {
+      try {
+        const { processCancellationRequest } = await import("./admin/orders");
+        await processCancellationRequest(req, res);
+      } catch (error) {
+        console.error("Error processing cancellation request:", error);
+        res
+          .status(500)
+          .json({ message: "Failed to process cancellation request" });
+      }
     }
-  });
+  );
 
   // Initialize Razorpay and Email service when environment variables are available
   if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {

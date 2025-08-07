@@ -51,17 +51,21 @@ const allowedOrigins = [
 
 // Add Replit domain patterns
 const isReplitDomain = (origin: string) => {
-  return origin && (
-    origin.includes('.replit.dev') || 
-    origin.includes('.repl.co') ||
-    origin.includes('.replit.app') ||
-    origin.includes('replit.com')
+  return (
+    origin &&
+    (origin.includes(".replit.dev") ||
+      origin.includes(".repl.co") ||
+      origin.includes(".replit.app") ||
+      origin.includes("replit.com"))
   );
 };
 
 app.use(
   cors({
-    origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    origin: function (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void
+    ) {
       // Allow requests with no origin (mobile apps, curl, etc.)
       if (!origin) {
         callback(null, true);
@@ -81,7 +85,10 @@ app.use(
       }
 
       // For development, allow localhost with any port
-      if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
+      if (
+        process.env.NODE_ENV === "development" &&
+        origin.startsWith("http://localhost:")
+      ) {
         callback(null, true);
         return;
       }
@@ -101,7 +108,7 @@ app.use(morgan("dev"));
   if (dbConnected) {
     // Initialize database with seed data
     try {
-      await initializeDatabase();
+      // await initializeDatabase();
       log("Database initialized successfully with seed data");
     } catch (error) {
       log("Error initializing database: " + error);
@@ -135,9 +142,9 @@ app.use(morgan("dev"));
   // Run every day at 12:00 AM
   scheduleCouponExpiration();
   // Configure port for Replit environment
-  const port = parseInt(process.env.PORT || '5000', 10);
-  const host = '0.0.0.0'; // Important for Replit
-  
+  const port = parseInt(process.env.PORT || "5000", 10);
+  const host = "0.0.0.0"; // Important for Replit
+
   server.listen(port, host, () => {
     log(`Server running on http://${host}:${port}`);
   });
