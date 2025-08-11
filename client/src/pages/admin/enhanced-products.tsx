@@ -62,45 +62,68 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import * as z from "zod";
 import ImageUpload from "@/components/admin/ImageUpload";
 
 // Enhanced Product type with all fields
+interface ProductVariant {
+  id?: string; // optional UUID or index
+  price: number;
+  discountPrice?: number;
+  quantity: number;
+  unit: string;
+  stockQuantity: number;
+  sku?: string;
+}
+
 interface EnhancedProduct {
   id: number;
   name: string;
   shortDescription: string;
   description: string;
-  price: number;
-  discountPrice?: number;
   category: string;
   subcategory?: string;
-  sku?: string;
-  unit: string;
-  quantity?: number;
-  stockQuantity: number;
-  imageUrl: string;
+  imageUrl?: string;
   imageUrls?: string[];
   videoUrl?: string;
   farmerId: number;
   featured: boolean;
+
+  variants: ProductVariant[]; // ⬅️ New addition
+
   // Product Attributes
   naturallyGrown: boolean;
   chemicalFree: boolean;
   premiumQuality: boolean;
-  // SEO Fields
+
+  // SEO
   metaTitle?: string;
   metaDescription?: string;
   slug?: string;
-  // Social Sharing Options
+
+  // Social Sharing
   enableShareButtons: boolean;
   enableWhatsappShare: boolean;
   enableFacebookShare: boolean;
   enableInstagramShare: boolean;
 }
-
-// Enhanced form schema for product with all fields
+const variantSchema = z.object({
+  price: z.number().min(0.01, "Price must be greater than 0"),
+  discountPrice: z
+    .number()
+    .min(0)
+    .nullable()
+    .optional()
+    .refine(
+      (val) => val === null || val === undefined || val >= 0,
+      "Discount price must be positive"
+    ),
+  quantity: z.number().min(0.01, "Quantity must be greater than 0"),
+  unit: z.string().min(1, "Please select a unit"),
+  stockQuantity: z.number().int().min(0, "Stock quantity must be 0 or greater"),
+  sku: z.string().min(1, "SKU is required").optional(),
+});
 const enhancedProductFormSchema = z.object({
   // Basic Information
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -112,13 +135,9 @@ const enhancedProductFormSchema = z.object({
     .min(20, "Full description must be at least 20 characters"),
   category: z.string().min(1, "Please select a category"),
   subcategory: z.string().optional(),
-  unit: z.string().min(1, "Please select a unit"),
-  quantity: z.number().min(0.01, "Quantity must be greater than 0"),
-  // Pricing & Inventory
-  price: z.number().min(0.01, "Price must be greater than 0"),
-  discountPrice: z.number().nullable().optional(),
-  stockQuantity: z.number().int().min(0, "Stock quantity must be 0 or greater"),
-  sku: z.string().optional(),
+
+  // Replaces flat price/unit/stock with multiple variants
+  variants: z.array(variantSchema).min(1, "At least one variant is required"),
 
   // Product Attributes
   naturallyGrown: z.boolean().default(false),
@@ -130,7 +149,7 @@ const enhancedProductFormSchema = z.object({
   imageUrls: z.string().optional(),
   videoUrl: z.string().url().optional().or(z.literal("")),
 
-  // Farmer Details
+  // Farmer
   farmerId: z.number().int().positive("Please select a valid farmer"),
 
   // SEO
@@ -138,7 +157,7 @@ const enhancedProductFormSchema = z.object({
   metaDescription: z.string().optional(),
   slug: z.string().optional(),
 
-  // Social Sharing
+  // Social
   enableShareButtons: z.boolean().default(true),
   enableWhatsappShare: z.boolean().default(true),
   enableFacebookShare: z.boolean().default(true),
@@ -213,7 +232,10 @@ export default function EnhancedAdminProducts() {
       featured: false,
     },
   });
-
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "variants",
+  });
   // Fetch products from API
   const fetchProducts = async (page = 1) => {
     setIsLoading(true);
@@ -460,13 +482,21 @@ export default function EnhancedAdminProducts() {
       shortDescription:
         product.shortDescription || product.description.substring(0, 100),
       description: product.description,
-      price: product.price,
-      discountPrice: product.discountPrice,
+
       category: product.category,
-      unit: product.unit || "",
-      quantity: product.quantity,
-      sku: product.sku || "",
-      stockQuantity: product.stockQuantity,
+
+      variants: product.variants?.length
+        ? product.variants.map((v) => ({
+            price: v.price,
+            discountPrice: v.discountPrice ?? undefined,
+            quantity: v.quantity,
+            unit: v.unit,
+            stockQuantity: v.stockQuantity,
+            sku: v.sku ?? "",
+            image: v.image ?? undefined,
+          }))
+        : [],
+
       imageUrl: product.imageUrl,
       imageUrls: product.imageUrls?.join(", ") || "",
       videoUrl: product.videoUrl || "",
@@ -542,13 +572,18 @@ export default function EnhancedAdminProducts() {
       name: "",
       shortDescription: "",
       description: "",
-      price: 0,
-      discountPrice: undefined,
+
       category: "",
-      unit: "",
-      quantity: 0,
-      sku: "",
-      stockQuantity: 0,
+      variants: [
+        {
+          price: 0,
+          discountPrice: undefined,
+          quantity: 1, // Default to 1 instead of 0
+          unit: "kg", // Default unit
+          stockQuantity: 0,
+          sku: "",
+        },
+      ],
       imageUrl: "",
       imageUrls: "",
       videoUrl: "",
@@ -606,14 +641,11 @@ export default function EnhancedAdminProducts() {
         imageUrl: finalImageUrl,
         imageUrls: imageUrls.length > 0 ? imageUrls : null,
         videoUrl: data.videoUrl || null,
-        discountPrice: data.discountPrice || null,
-        sku: data.sku || null,
+        variants: data.variants,
         metaTitle: data.metaTitle || null,
         metaDescription: data.metaDescription || null,
         slug: data.slug || null,
       };
-
-      console.log("Sending request data:", requestData);
 
       let response;
 
@@ -702,242 +734,6 @@ export default function EnhancedAdminProducts() {
           Add Product
         </Button>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Product List</CardTitle>
-          <div className="flex w-full max-w-sm items-center space-x-2 mt-2">
-            <Input
-              type="search"
-              placeholder="Search products, categories, SKUs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9"
-            />
-            <Button type="submit" size="sm" variant="ghost">
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : error ? (
-            <div className="bg-red-50 p-4 rounded-md text-red-500">{error}</div>
-          ) : (
-            <>
-              <Table className="border">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead>Attributes</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-4">
-                        No products found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredProducts.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell className="w-[300px] align-top">
-                          <div className="flex items-start gap-3">
-                            <div className="relative w-24 h-20 flex-shrink-0">
-                              <img
-                                src={product.imageUrl}
-                                alt={product.name}
-                                className="w-full h-full object-cover rounded-md"
-                                onError={(e) => {
-                                  e.currentTarget.onerror = null;
-                                  e.currentTarget.src = placeholderImage;
-                                }}
-                              />
-                              {product.imageUrls?.length > 0 && (
-                                <div className="absolute -bottom-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                  +{product.imageUrls.length}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex flex-col overflow-hidden">
-                              <p className="font-medium truncate">
-                                {product.name}
-                              </p>
-                              <p className="text-sm text-muted-foreground line-clamp-2">
-                                {product.shortDescription}
-                              </p>
-                              {product.sku && (
-                                <p className="text-xs text-muted-foreground">
-                                  SKU: {product.sku}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        <TableCell className="w-[150px]">
-                          {product.category}
-                        </TableCell>
-                        <TableCell className="w-[150px]">
-                          <div>
-                            <p>₹{product.price.toFixed(2)}</p>
-                            {product.discountPrice && (
-                              <p className="text-sm text-green-600">
-                                Discount: ₹{product.discountPrice.toFixed(2)}
-                              </p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[150px]">
-                          {product.stockQuantity === 0 ? (
-                            <Badge variant="destructive">Out of Stock</Badge>
-                          ) : product.stockQuantity < 10 ? (
-                            <Badge variant="outline">
-                              Low: {product.stockQuantity}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline">
-                              {product.stockQuantity}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="w-[160px]">
-                          <div className="flex flex-col gap-1 space-x-1">
-                            {product.naturallyGrown && (
-                              <>
-                                <Badge variant="secondary" className="text-xs">
-                                  <Leaf className="h-3 w-3 mr-1" />
-                                  Natural
-                                </Badge>
-                              </>
-                            )}
-                            {product.chemicalFree && (
-                              <>
-                                <Badge variant="secondary" className="text-xs">
-                                  <Shield className="h-3 w-3 mr-1" />
-                                  Chemical-Free
-                                </Badge>
-                              </>
-                            )}
-                            {product.premiumQuality && (
-                              <Badge variant="secondary" className="text-xs">
-                                <Crown className="h-3 w-3 mr-1" />
-                                Premium
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {product.featured ? (
-                            <Badge variant="default">Featured</Badge>
-                          ) : (
-                            <Badge variant="outline">Standard</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() =>
-                                handleToggleFeatured(
-                                  product.id,
-                                  Boolean(product.featured)
-                                )
-                              }
-                            >
-                              {product.featured ? (
-                                <StarOff className="h-4 w-4 text-amber-500" />
-                              ) : (
-                                <Star className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setupEditForm(product)}
-                              title="Edit Product"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setProductToEdit(product);
-                                setIsImageGalleryOpen(true);
-                              }}
-                              title="View Images"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setProductToDelete(product);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-
-              {/* Pagination */}
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-muted-foreground">
-                  Showing {(currentPage - 1) * productsPerPage + 1} to{" "}
-                  {Math.min(
-                    currentPage * productsPerPage,
-                    products.length * totalPages
-                  )}{" "}
-                  of {products.length * totalPages} products
-                </div>
-                {totalPages > 1 && (
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage <= 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage >= totalPages}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Create/Edit Product Dialog */}
       <Dialog
@@ -1147,168 +943,197 @@ export default function EnhancedAdminProducts() {
                   />
                 </TabsContent>
 
-                {/* Pricing & Inventory Tab */}
-                <TabsContent value="pricing" className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price (₹)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              {...(!isCreateDialogOpen ? field : {})}
-                              onChange={(e) => {
-                                const value = parseFloat(e.target.value);
-                                if (value < 0) {
-                                  e.target.value = "0";
-                                } else {
-                                  field.onChange(value);
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="discountPrice"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Discount Price (₹)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="Optional discount price"
-                              {...(!isCreateDialogOpen ? field : {})}
-                              onChange={(e) => {
-                                const value = parseFloat(e.target.value);
-                                if (value < 0) {
-                                  e.target.value = "0";
-                                } else {
-                                  field.onChange(value);
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Leave empty if no discount
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="quantity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Quantity</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              {...(!isCreateDialogOpen ? field : {})}
-                              onChange={(e) => {
-                                const value = parseFloat(e.target.value);
-                                if (value < 0) {
-                                  e.target.value = "0";
-                                } else {
-                                  field.onChange(value);
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="unit"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Unit</FormLabel>
-                          <FormControl>
-                            <Select
-                              onValueChange={(value) => field.onChange(value)}
-                              value={field.value}
-                            >
+                <TabsContent value="pricing" className="space-y-6">
+                  {fields.map((field, index) => (
+                    <div
+                      key={field.id}
+                      className="border p-4 rounded-md mb-4 space-y-4"
+                    >
+                      <div className="grid grid-cols-3 gap-4">
+                        {/* Price */}
+                        <FormField
+                          control={form.control}
+                          name={`variants.${index}.price`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Price *</FormLabel>
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a unit" />
-                                </SelectTrigger>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-2">
+                                    ₹
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    className="pl-8"
+                                    value={field.value || ""}
+                                    onChange={(e) =>
+                                      field.onChange(e.target.valueAsNumber)
+                                    }
+                                  />
+                                </div>
                               </FormControl>
-                              <SelectContent>
-                                <SelectItem value="kg">Kg</SelectItem>
-                                <SelectItem value="gram">gram</SelectItem>
-                                <SelectItem value="l">L</SelectItem>
-                                <SelectItem value="pcs">pcs</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="stockQuantity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Stock Quantity</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="100"
-                              {...(!isCreateDialogOpen ? field : {})}
-                              onChange={(e) => {
-                                const value = parseFloat(e.target.value);
-                                if (value < 0) {
-                                  e.target.value = "0";
-                                } else {
-                                  field.onChange(value);
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="sku"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>SKU/Product Code</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Optional SKU or product code"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            For inventory management
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Discount Price */}
+                        <FormField
+                          control={form.control}
+                          name={`variants.${index}.discountPrice`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Discounted Price</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-2">
+                                    ₹
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="Optional"
+                                    className="pl-8"
+                                    value={field.value || ""}
+                                    onChange={(e) =>
+                                      field.onChange(
+                                        e.target.value
+                                          ? e.target.valueAsNumber
+                                          : null
+                                      )
+                                    }
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Quantity */}
+                        <FormField
+                          control={form.control}
+                          name={`variants.${index}.quantity`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Quantity *</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="1"
+                                  value={field.value || ""}
+                                  onChange={(e) =>
+                                    field.onChange(e.target.valueAsNumber)
+                                  }
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4">
+                        {/* Unit Dropdown */}
+                        <FormField
+                          control={form.control}
+                          name={`variants.${index}.unit`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Unit *</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select unit" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="kg">kg</SelectItem>
+                                  <SelectItem value="g">g</SelectItem>
+                                  <SelectItem value="lb">lb</SelectItem>
+                                  <SelectItem value="oz">oz</SelectItem>
+                                  <SelectItem value="piece">piece</SelectItem>
+                                  <SelectItem value="bunch">bunch</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Stock Quantity */}
+                        <FormField
+                          control={form.control}
+                          name={`variants.${index}.stockQuantity`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Stock Quantity *</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  min="0"
+                                  value={field.value || ""}
+                                  onChange={(e) =>
+                                    field.onChange(parseInt(e.target.value))
+                                  }
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* SKU */}
+                        <FormField
+                          control={form.control}
+                          name={`variants.${index}.sku`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>SKU</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Optional SKU" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => remove(index)}
+                        >
+                          Remove Variant
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      append({
+                        price: 0,
+                        discountPrice: undefined,
+                        quantity: 1,
+                        unit: "kg",
+                        stockQuantity: 0,
+                        sku: "",
+                      })
+                    }
+                  >
+                    Add Variant
+                  </Button>
                 </TabsContent>
 
                 {/* Product Attributes Tab */}

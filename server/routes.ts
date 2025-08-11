@@ -35,9 +35,10 @@ import {
   Order,
   insertOrderSchema,
   User,
+  productVariants,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, asc, inArray, and, isNotNull } from "drizzle-orm";
+import { eq, sql, desc, asc, inArray, and, isNotNull, like } from "drizzle-orm";
 import adminRouter from "./admin";
 import imageRouter from "./imageRoutes";
 import { exportDatabase, exportTable } from "./databaseExport";
@@ -129,93 +130,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all products with pagination (user-facing)
   app.get(`${apiPrefix}/products`, async (req, res) => {
     try {
-      // Add cache-busting headers
+      // Disable caching
       res.set({
         "Cache-Control": "no-cache, no-store, must-revalidate",
         Pragma: "no-cache",
         Expires: "0",
       });
 
-      const allProducts = await storage.getAllProducts();
+      // Parse query parameters
       const {
         page = "1",
-        limit = "12",
+        limit = "10",
+        sort = "id",
+        order = "asc",
         search = "",
         category = "",
-        minPrice = "",
-        maxPrice = "",
-        sortBy = "id",
-        sortOrder = "desc",
       } = req.query as Record<string, string>;
 
       const pageNumber = parseInt(page);
       const limitNumber = parseInt(limit);
-
-      // Apply filters
-      let filteredProducts = allProducts.filter((product) => {
-        // Search filter
-
-        if (product.isDeleted) return false;
-        if (search) {
-          const searchTerm = search.toLowerCase();
-          const matchesSearch =
-            product.name.toLowerCase().includes(searchTerm) ||
-            product.description.toLowerCase().includes(searchTerm) ||
-            product.shortDescription.toLowerCase().includes(searchTerm);
-          if (!matchesSearch) return false;
-        }
-
-        // Category filter
-        if (category && category !== "all") {
-          if (product.category !== category) return false;
-        }
-
-        // Price filters
-        if (minPrice) {
-          const min = parseFloat(minPrice);
-          if (!isNaN(min) && product.price < min) return false;
-        }
-
-        if (maxPrice) {
-          const max = parseFloat(maxPrice);
-          if (!isNaN(max) && product.price > max) return false;
-        }
-
-        return true;
-      });
-
-      // Apply sorting
-      filteredProducts.sort((a, b) => {
-        let comparison = 0;
-
-        if (sortBy === "price") {
-          comparison = a.price - b.price;
-        } else if (sortBy === "name") {
-          comparison = a.name.localeCompare(b.name);
-        } else {
-          comparison = a.id - b.id;
-        }
-
-        return sortOrder === "asc" ? comparison : -comparison;
-      });
-
-      // Calculate pagination
-      const total = filteredProducts.length;
-      const totalPages = Math.ceil(total / limitNumber);
       const offset = (pageNumber - 1) * limitNumber;
-      const paginatedProducts = filteredProducts.slice(
-        offset,
-        offset + limitNumber
-      );
 
+      // Build filters
+      const filters = [eq(products.isDeleted, false)];
+      if (search) filters.push(like(products.name, `%${search}%`));
+      if (category) filters.push(eq(products.category, category));
+
+      // Total count
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(products)
+        .where(and(...filters));
+
+      // Sorting
+      const sortColumn = products[sort as keyof typeof products] || products.id;
+      const sortOrder =
+        order.toLowerCase() === "asc" ? asc(sortColumn) : desc(sortColumn);
+
+      // Fetch products
+      const productsList = await db
+        .select()
+        .from(products)
+        .where(and(...filters))
+        .orderBy(sortOrder)
+        .limit(limitNumber)
+        .offset(offset);
+
+      const productIds = productsList.map((p) => p.id);
+
+      let variantsMap: Record<number, any[]> = {};
+
+      if (productIds.length > 0) {
+        const variants = await db
+          .select()
+          .from(productVariants)
+          .where(inArray(productVariants.productId, productIds));
+
+        variantsMap = variants.reduce((acc, variant) => {
+          const pid = variant.productId;
+          if (!acc[pid]) acc[pid] = [];
+          acc[pid].push(variant);
+          return acc;
+        }, {} as Record<number, any[]>);
+
+        // Debugging: log if no variants found for a product
+        productsList.forEach((p) => {
+          if (!variantsMap[p.id]) {
+            console.warn(`No variants found for product ID ${p.id}`);
+          }
+        });
+      }
+
+      // Final mapping
+      const enrichedProducts = productsList.map((product) => ({
+        ...product,
+        variants: variantsMap[product.id] || [],
+      }));
+
+      // Response
       res.json({
-        products: paginatedProducts,
+        products: enrichedProducts,
         pagination: {
-          total,
+          total: Number(count),
           page: pageNumber,
           limit: limitNumber,
-          totalPages,
-          hasNextPage: pageNumber < totalPages,
+          totalPages: Math.ceil(Number(count) / limitNumber),
+          hasNextPage: pageNumber * limitNumber < Number(count),
           hasPrevPage: pageNumber > 1,
         },
       });

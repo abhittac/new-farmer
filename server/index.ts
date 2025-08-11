@@ -102,7 +102,7 @@ app.use(
 app.use(morgan("dev"));
 (async () => {
   // Test database connection first
-  const { testDatabaseConnection } = await import("./db");
+  const { testDatabaseConnection } = await import("./db.ts");
   const dbConnected = await testDatabaseConnection();
 
   if (dbConnected) {

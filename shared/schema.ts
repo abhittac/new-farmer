@@ -57,39 +57,54 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "expired",
   "past_due",
 ]);
-export const unitEnum = pgEnum("unit", ["kg", "l", "gram", "pcs"]);
-// Product Schema
+// ✅ Product Variants Input Schema (productId will be added later in code)
+export const insertProductVariantSchema = z.object({
+  price: z.number(),
+  discountPrice: z.number(),
+  quantity: z.number(),
+  unit: z.string(),
+  stockQuantity: z.number(),
+  sku: z.string(),
+});
+
+// ✅ Drizzle table for product variants
+export const productVariants = pgTable("product_variants", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  price: doublePrecision("price").notNull(),
+  discountPrice: doublePrecision("discount_price"),
+  quantity: doublePrecision("quantity").notNull(),
+  unit: text("unit").notNull(),
+  stockQuantity: integer("stock_quantity").notNull().default(0),
+  sku: text("sku"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ✅ Main products table
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   shortDescription: text("short_description").notNull(),
   description: text("description").notNull(),
-  price: doublePrecision("price").notNull(),
-  discountPrice: doublePrecision("discount_price"),
   category: text("category").notNull(),
-  subcategory: text("subcategory"), // Optional subcategory
-  sku: text("sku"),
-  unit: unitEnum("unit"), // ✅ Fixed line
-  quantity: doublePrecision("quantity"),
+  subcategory: text("subcategory"),
   imageUrl: text("image_url").notNull(),
-  // Soft delete flag
   isDeleted: boolean("is_deleted").default(false),
   imageUrls: text("image_urls").array(),
   thumbnailUrl: text("thumbnail_url"),
   localImagePaths: text("local_image_paths").array(),
   videoUrl: text("video_url"),
   farmerId: integer("farmer_id").notNull(),
-  stockQuantity: integer("stock_quantity").notNull().default(100),
   featured: boolean("featured").default(false),
-  // Product Attributes
   naturallyGrown: boolean("naturally_grown").default(false),
   chemicalFree: boolean("chemical_free").default(false),
   premiumQuality: boolean("premium_quality").default(false),
-  // SEO Fields
   metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),
   slug: text("slug"),
-  // Social Sharing Options
   enableShareButtons: boolean("enable_share_buttons").default(true),
   enableWhatsappShare: boolean("enable_whatsapp_share").default(true),
   enableFacebookShare: boolean("enable_facebook_share").default(true),
@@ -98,11 +113,33 @@ export const products = pgTable("products", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertProductSchema = createInsertSchema(products).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+// ✅ Schema for product creation (includes variants)
+export const insertProductSchema = createInsertSchema(products)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    variants: z
+      .array(insertProductVariantSchema)
+      .min(1, "At least one variant is required"),
+  });
+
+// ✅ Product relations
+export const productsRelations = relations(products, ({ many }) => ({
+  variants: many(productVariants),
+}));
+
+export const productVariantsRelations = relations(
+  productVariants,
+  ({ one }) => ({
+    product: one(products, {
+      fields: [productVariants.productId],
+      references: [products.id],
+    }),
+  })
+);
 
 // Farmer Schema
 export const farmers = pgTable("farmers", {
@@ -394,8 +431,8 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
 });
 
 // Export types
-export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type Product = typeof products.$inferSelect;
+
+// ✅ Update exported Product types
 
 export type InsertFarmer = z.infer<typeof insertFarmerSchema>;
 export type Farmer = typeof farmers.$inferSelect;

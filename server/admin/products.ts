@@ -7,20 +7,24 @@ import {
   ProductCategory,
   orders,
   orderItems,
+  insertProductVariantSchema,
+  productVariants,
 } from "@shared/schema";
-import { eq, like, desc, asc, sql } from "drizzle-orm";
+import { eq, like, desc, asc, sql, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 // GET all products with pagination, sorting and filtering
+
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
-    // Add cache-busting headers
+    // Disable caching
     res.set({
       "Cache-Control": "no-cache, no-store, must-revalidate",
       Pragma: "no-cache",
       Expires: "0",
     });
 
+    // Parse query parameters
     const {
       page = "1",
       limit = "10",
@@ -34,82 +38,80 @@ export const getAllProducts = async (req: Request, res: Response) => {
     const limitNumber = parseInt(limit);
     const offset = (pageNumber - 1) * limitNumber;
 
-    // Base query for products
-    let productsQuery = db
+    // Build filters
+    const filters = [eq(products.isDeleted, false)];
+    if (search) filters.push(like(products.name, `%${search}%`));
+    if (category) filters.push(eq(products.category, category));
+
+    // Total count
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(products)
+      .where(and(...filters));
+
+    // Sorting
+    const sortColumn = products[sort as keyof typeof products] || products.id;
+    const sortOrder =
+      order.toLowerCase() === "asc" ? asc(sortColumn) : desc(sortColumn);
+
+    // Fetch products
+    const productsList = await db
       .select()
       .from(products)
-      .where(eq(products.isDeleted, false));
+      .where(and(...filters))
+      .orderBy(sortOrder)
+      .limit(limitNumber)
+      .offset(offset);
 
-    // Apply filters
-    if (search) {
-      productsQuery = productsQuery.where(like(products.name, `%${search}%`));
+    const productIds = productsList.map((p) => p.id);
+
+    let variantsMap: Record<number, any[]> = {};
+
+    if (productIds.length > 0) {
+      const variants = await db
+        .select()
+        .from(productVariants)
+        .where(inArray(productVariants.productId, productIds));
+
+      variantsMap = variants.reduce((acc, variant) => {
+        const pid = variant.productId;
+        if (!acc[pid]) acc[pid] = [];
+        acc[pid].push(variant);
+        return acc;
+      }, {} as Record<number, any[]>);
+
+      // Debugging: log if no variants found for a product
+      productsList.forEach((p) => {
+        if (!variantsMap[p.id]) {
+          console.warn(`No variants found for product ID ${p.id}`);
+        }
+      });
     }
 
-    if (category) {
-      productsQuery = productsQuery.where(eq(products.category, category));
-    }
+    // Final mapping
+    const enrichedProducts = productsList.map((product) => ({
+      ...product,
+      variants: variantsMap[product.id] || [],
+    }));
 
-    // Count total products with the same filters
-    let countResult;
-    if (search || category) {
-      let countQuery = db
-        .select({ count: sql`count(*)` })
-        .from(products)
-        .where(eq(products.isDeleted, false));
-
-      if (search) {
-        countQuery = countQuery.where(like(products.name, `%${search}%`));
-      }
-
-      if (category) {
-        countQuery = countQuery.where(eq(products.category, category));
-      }
-
-      const countRows = await countQuery;
-      countResult = countRows[0]?.count ? Number(countRows[0].count) : 0;
-    } else {
-      const countRows = await db
-        .select({ count: sql`count(*)` })
-        .from(products)
-        .where(eq(products.isDeleted, false));
-      countResult = countRows[0]?.count ? Number(countRows[0].count) : 0;
-    }
-
-    // Apply sorting
-    if (sort && products[sort as keyof typeof products]) {
-      const sortColumn = products[sort as keyof typeof products];
-      if (order.toLowerCase() === "asc") {
-        productsQuery = productsQuery.orderBy(asc(sortColumn));
-      } else {
-        productsQuery = productsQuery.orderBy(desc(sortColumn));
-      }
-    } else {
-      // Default sort by id descending
-      productsQuery = productsQuery.orderBy(desc(products.id));
-    }
-
-    // Apply pagination
-    productsQuery = productsQuery.limit(limitNumber).offset(offset);
-
-    // Execute query
-    const productsList = await productsQuery;
-
-    // Return paginated result
+    // Response
     res.json({
-      products: productsList,
+      products: enrichedProducts,
       pagination: {
-        sdsd: "sdsd",
-        total: countResult,
+        total: Number(count),
         page: pageNumber,
         limit: limitNumber,
-        totalPages: Math.ceil(countResult / limitNumber),
+        totalPages: Math.ceil(Number(count) / limitNumber),
+        hasNextPage: pageNumber * limitNumber < Number(count),
+        hasPrevPage: pageNumber > 1,
       },
     });
   } catch (error) {
     console.error("Error fetching products:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to fetch products", error: String(error) });
+    res.status(500).json({
+      message: "Failed to fetch products",
+      error: String(error),
+    });
   }
 };
 
@@ -137,49 +139,73 @@ export const getProductById = async (req: Request, res: Response) => {
   }
 };
 
-// CREATE product
+// ----------------------------------------------------------------------------------
+// 1. HELPER FUNCTION (Your version is perfect, kept for context)
+// This function efficiently fetches a product and its related variants in a single DB call.
+// ----------------------------------------------------------------------------------
+
+export const getProductWithVariants = async (productId: number) => {
+  const productWithVariants = await db.query.products.findFirst({
+    where: eq(products.id, productId),
+    with: {
+      variants: true, // This uses the Drizzle relation to automatically fetch variants
+    },
+  });
+
+  return productWithVariants || null;
+};
+
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    // Add cache-busting headers
-    res.set({
-      "Cache-Control": "no-cache, no-store, must-revalidate",
-      Pragma: "no-cache",
-      Expires: "0",
+    // ✅ 1. Parse and validate request body
+    const parsedData = insertProductSchema.parse(req.body);
+    const { variants, ...productBaseData } = parsedData;
+
+    // ✅ 2. Start transaction to insert product and variants
+    const newProductId = await db.transaction(async (tx) => {
+      // 2a. Insert product
+      const [newProduct] = await tx
+        .insert(products)
+        .values({
+          ...productBaseData,
+          localImagePaths: productBaseData.imageUrls || null,
+        })
+        .returning({ id: products.id });
+
+      // 2b. Defensive check (optional, tx.insert should always return)
+      if (!newProduct?.id) {
+        throw new Error("Failed to create product.");
+      }
+
+      // 2c. Insert variants
+      const variantsToInsert = variants.map((variant) => ({
+        ...variant,
+        productId: newProduct.id,
+      }));
+
+      await tx.insert(productVariants).values(variantsToInsert);
+
+      return newProduct.id;
     });
 
-    // Validate request body
-    const productData = insertProductSchema.parse(req.body);
+    // ✅ 3. Fetch and return the full product with variants
+    const finalProduct = await getProductWithVariants(newProductId);
 
-    // Process image URLs to ensure local image paths are stored properly
-    const processedData = {
-      ...productData,
-      localImagePaths: productData.imageUrls || null,
-      updatedAt: new Date(),
-    };
-
-    // Insert product
-    const [newProduct] = await db
-      .insert(products)
-      .values(processedData)
-      .returning();
-
-    console.log(
-      "Product created successfully:",
-      newProduct.id,
-      newProduct.name
-    );
-    res.status(201).json(newProduct);
+    return res.status(201).json(finalProduct);
   } catch (error) {
     console.error("Error creating product:", error);
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         message: "Validation error",
-        errors: error.errors,
+        errors: error.flatten().fieldErrors,
       });
     }
-    res
-      .status(500)
-      .json({ message: "Failed to create product", error: String(error) });
+
+    return res.status(500).json({
+      message: "Failed to create product",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 };
 
