@@ -28,9 +28,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import placeholderImage from "../../../../public/uploads/products/No-Image.png";
 interface Product {
-  id: number;
-  name: string;
-  sku: string;
+  id: number; // variant.id
+  name: string; // productName
+  sku: string; // variant.sku
   category: string;
   price: number;
   stockQuantity: number;
@@ -42,25 +42,23 @@ interface Product {
 export default function AdminInventory() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [editingStock, setEditingStock] = useState<{ [key: number]: number }>(
-    {}
-  );
-  const [restockCheck, setrestockCheck] = useState(false);
+  const [editingStock, setEditingStock] = useState<{
+    [variantId: number]: number;
+  }>({});
+  const [restockCheck, setRestockCheck] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [productsPerPage] = useState(10);
+  const productsPerPage = 10;
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  // Create a ref for inputs
-  // abhi
   const [tabValue, setTabValue] = useState("all-products");
   const inputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
-  // abhi
-  // Fetch all products with React Query
-  const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ["/api/admin/products"],
+
+  // Fetch inventory products
+  const { data: rawProductsData = [], isLoading: productsLoading } = useQuery({
+    queryKey: ["/api/admin/inventory-products"],
     queryFn: async () => {
       const response = await fetch(
-        "/api/admin/products?limit=50&sort=id&order=desc",
+        "/api/admin/inventory-products?limit=50&sort=id&order=desc",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
@@ -71,51 +69,68 @@ export default function AdminInventory() {
       if (!response.ok) throw new Error("Failed to fetch products");
       return response.json();
     },
-    select: (data: any) => data.products || [],
+    select: (data: any) => {
+      // Map API response to Product[]
+      return (data.products || []).map((item: any) => ({
+        id: item.variant.id,
+        name: item.productName,
+        sku: item.variant.sku,
+        category: item.category,
+        price: item.variant.discountPrice ?? item.variant.price,
+        stockQuantity: item.variant.stockQuantity,
+        quantity: item.variant.quantity,
+        unit: item.variant.unit,
+      }));
+    },
   });
 
-  // Fetch low stock products
-  const { data: lowStockData, isLoading: lowStockLoading } = useQuery({
+  // Fetch low stock variants
+  const { data: lowStockData = [], isLoading: lowStockLoading } = useQuery({
     queryKey: ["/api/admin/low-stock"],
-    select: (data: any) => data.lowStockProducts || [],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/low-stock", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          "Cache-Control": "no-cache",
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch low stock");
+      return response.json();
+    },
+    select: (data: any) => data.lowStockVariants || [],
   });
 
-  const products = productsData || [];
-  const lowStockProducts = lowStockData || [];
-  const loading = productsLoading || lowStockLoading;
-
+  // Create a Set of low stock variant IDs for quick lookup
+  const lowStockSet = useMemo(
+    () => new Set(lowStockData.map((v) => v)),
+    [lowStockData]
+  );
+  console.log(">>>>lookup", Array.from(lowStockSet));
   // Update stock mutation
   const updateStockMutation = useMutation({
     mutationFn: async ({
-      productId,
+      variantId,
       newStock,
     }: {
-      productId: number;
+      variantId: number;
       newStock: number;
     }) => {
-      const response = await fetch(`/api/admin/products/${productId}/stock`, {
+      const response = await fetch(`/api/admin/products/${variantId}/stock`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stockQuantity: newStock }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to update stock");
-      }
-
+      if (!response.ok) throw new Error("Failed to update stock");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/low-stock"] });
-      toast({
-        title: "Success",
-        description: "Stock updated successfully",
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/inventory-products"],
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/low-stock"] });
+      toast({ title: "Success", description: "Stock updated successfully" });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to update stock",
@@ -124,90 +139,79 @@ export default function AdminInventory() {
     },
   });
 
-  // Filter products based on search and category
-  // const filteredProducts = products.filter((product: Product) => {
-  //   const matchesSearch =
-  //     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //     product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-  //   const matchesCategory =
-  //     !selectedCategory || product.category === selectedCategory;
-  //   return matchesSearch && matchesCategory;
-  // });
-  // abhi
+  // Filtering + sorting + restock toggle
   const filteredProducts = useMemo(() => {
-    return products
+    return rawProductsData
       .filter((product: Product) => {
-        const name = product?.name?.toLowerCase() || "";
-        const sku = product?.sku?.toLowerCase() || "";
-        const category = product?.category || "";
+        const name = product.name.toLowerCase();
+        const sku = product.sku.toLowerCase();
+        const category = product.category;
         const search = searchTerm.trim().toLowerCase();
 
         const matchesSearch = name.includes(search) || sku.includes(search);
         const matchesCategory =
           !selectedCategory || selectedCategory === category;
+        const matchesRestock = !restockCheck || lowStockSet.has(product.id);
 
-        return matchesSearch && matchesCategory;
+        return matchesSearch && matchesCategory && matchesRestock;
       })
       .sort((a, b) => {
         const aEditing = editingStock[a.id] !== undefined ? 1 : 0;
         const bEditing = editingStock[b.id] !== undefined ? 1 : 0;
-        return bEditing - aEditing; // Show editing rows at the top
+        return bEditing - aEditing; // Editing rows come first
       });
-  }, [products, searchTerm, selectedCategory, restockCheck]);
-  // Pagination calculations
+  }, [
+    rawProductsData,
+    searchTerm,
+    selectedCategory,
+    restockCheck,
+    editingStock,
+    lowStockSet,
+  ]);
+
+  // Pagination
   const totalProducts = filteredProducts.length;
   const totalPages = Math.ceil(totalProducts / productsPerPage);
   const startIndex = (currentPage - 1) * productsPerPage;
   const endIndex = startIndex + productsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
+  // Page change handler
   const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
   };
 
-  // Get unique categories
-  const categories: string[] = [];
-  const categorySet = new Set<string>();
-  products.forEach((p: Product) => {
-    if (!categorySet.has(p.category)) {
-      categorySet.add(p.category);
-      categories.push(p.category);
-    }
-  });
+  // Categories for filter dropdown
+  const categories = useMemo(() => {
+    const setCat = new Set<string>();
+    rawProductsData.forEach((p) => setCat.add(p.category));
+    return Array.from(setCat);
+  }, [rawProductsData]);
 
-  // const handleStockEdit = (productId: number, currentStock: number) => {
-  //   setEditingStock({ ...editingStock, [productId]: currentStock });
-  // };
-  // abhi
-  const handleStockEdit = (
-    productId: number,
-    currentStock: number,
-    restock: boolean
-  ) => {
-    if (restock) {
-      setrestockCheck(!restockCheck);
-      setCurrentPage(1);
-    }
-    setEditingStock({ [productId]: currentStock }); // clear other edits
-    setTabValue("all-products"); // switch to All Products tab
+  // Stock editing handlers
+  const handleStockEdit = (variantId: number, currentStock: number) => {
+    setEditingStock({ [variantId]: currentStock }); // clear other edits
     setTimeout(() => {
-      inputRefs.current[productId]?.focus(); // Auto focus input
+      inputRefs.current[variantId]?.focus();
     }, 50);
   };
-  const handleStockSave = (productId: number) => {
-    const newStock = editingStock[productId];
+
+  const handleStockSave = (variantId: number) => {
+    const newStock = editingStock[variantId];
     if (newStock !== undefined && newStock >= 0) {
-      updateStockMutation.mutate({ productId, newStock });
-      const { [productId]: _, ...rest } = editingStock;
+      updateStockMutation.mutate({ variantId, newStock });
+      const { [variantId]: _, ...rest } = editingStock;
       setEditingStock(rest);
     }
   };
 
-  const handleStockCancel = (productId: number) => {
-    const { [productId]: _, ...rest } = editingStock;
+  const handleStockCancel = (variantId: number) => {
+    const { [variantId]: _, ...rest } = editingStock;
     setEditingStock(rest);
   };
 
+  // Stock badge & status helpers
   const getStockBadgeVariant = (stock: number) => {
     if (stock === 0) return "destructive";
     if (stock <= 10) return "secondary";
@@ -220,8 +224,11 @@ export default function AdminInventory() {
     return "In Stock";
   };
 
+  // Render your UI here with currentProducts, pagination, filters, editing inputs etc.
+
   return (
     <div className="space-y-6">
+      {/* Header and overview cards */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
           Inventory Management
@@ -231,7 +238,6 @@ export default function AdminInventory() {
         </p>
       </div>
 
-      {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -241,7 +247,9 @@ export default function AdminInventory() {
             <Package className="h-8 w-8 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{products.length}</div>
+            <div className="text-2xl font-bold">
+              {rawProductsData?.length || 0}
+            </div>
             <p className="text-xs text-muted-foreground">
               Products in inventory
             </p>
@@ -257,7 +265,7 @@ export default function AdminInventory() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {lowStockProducts.length}
+              {Array.from(lowStockSet).length}
             </div>
             <p className="text-xs text-muted-foreground">
               Items below threshold
@@ -272,15 +280,16 @@ export default function AdminInventory() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {products.filter((p: Product) => p.stockQuantity === 0).length}
+              {
+                (rawProductsData || []).filter((p) => p.stockQuantity === 0)
+                  .length
+              }
             </div>
             <p className="text-xs text-muted-foreground">Items unavailable</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* <Tabs defaultValue="all-products" className="space-y-4"> */}
-      {/* abhi */}
       <Tabs value={tabValue} onValueChange={setTabValue} className="space-y-4">
         <TabsList>
           <TabsTrigger value="all-products">All Products</TabsTrigger>
@@ -322,7 +331,7 @@ export default function AdminInventory() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {loading ? (
+              {productsLoading ? (
                 <div className="text-center py-8">Loading products...</div>
               ) : filteredProducts.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -355,9 +364,9 @@ export default function AdminInventory() {
                                 <img
                                   src={product.imageUrl}
                                   alt={product.name}
-                                  onError={(e) => {
-                                    e.currentTarget.src = placeholderImage;
-                                  }}
+                                  onError={(e) =>
+                                    (e.currentTarget.src = placeholderImage)
+                                  }
                                   className="w-10 h-10 rounded object-cover"
                                 />
                               )}
@@ -383,9 +392,8 @@ export default function AdminInventory() {
                               <div className="flex items-center gap-2">
                                 <Input
                                   type="number"
-                                  min="0"
+                                  min={0}
                                   value={editingStock[product.id]}
-                                  // abhi
                                   ref={(el) =>
                                     (inputRefs.current[product.id] = el)
                                   }
@@ -422,8 +430,7 @@ export default function AdminInventory() {
                                   onClick={() =>
                                     handleStockEdit(
                                       product.id,
-                                      product.stockQuantity,
-                                      false
+                                      product.stockQuantity
                                     )
                                   }
                                 >
@@ -448,8 +455,7 @@ export default function AdminInventory() {
                               onClick={() =>
                                 handleStockEdit(
                                   product.id,
-                                  product.stockQuantity,
-                                  false
+                                  product.stockQuantity
                                 )
                               }
                               disabled={editingStock[product.id] !== undefined}
@@ -525,48 +531,47 @@ export default function AdminInventory() {
             <CardContent>
               {lowStockLoading ? (
                 <div className="text-center py-8">
-                  Loading low stock products...
+                  Loading low stock variants...
                 </div>
-              ) : lowStockProducts.length === 0 ? (
+              ) : Array.from(lowStockSet).length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No low stock products found
+                  No low stock variants found
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {lowStockProducts.map((product: Product) => (
+                  {Array.from(lowStockSet).map((variant: any) => (
                     <div
-                      key={product.id}
+                      key={variant.variantId}
                       className="flex items-center justify-between p-4 border rounded-lg"
                     >
                       <div className="flex items-center gap-4">
-                        {product.imageUrl && (
+                        {variant.imageUrl && (
                           <img
-                            src={product.imageUrl}
+                            src={variant.imageUrl}
                             onError={(e) => {
                               e.currentTarget.src = placeholderImage;
                             }}
-                            alt={product.name}
+                            alt={variant.variantName}
                             className="w-12 h-12 rounded object-cover"
                           />
                         )}
                         <div>
-                          <h3 className="font-medium">{product.name}</h3>
+                          <h3 className="font-medium">{variant.variantName}</h3>
                           <p className="text-sm text-muted-foreground">
-                            SKU: {product.sku}
+                            SKU: {variant.sku}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <Badge variant="secondary">
-                          {product.stockQuantity} left
+                          {variant.stockQuantity} left
                         </Badge>
                         <Button
                           size="sm"
                           onClick={() =>
                             handleStockEdit(
-                              product.id,
-                              product.stockQuantity,
-                              true
+                              variant.variantId,
+                              variant.stockQuantity
                             )
                           }
                         >

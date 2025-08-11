@@ -14,6 +14,116 @@ import { eq, like, desc, asc, sql, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 // GET all products with pagination, sorting and filtering
+export const getAllInventoryProducts = async (req: Request, res: Response) => {
+  try {
+    // Disable caching
+    res.set({
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+    });
+
+    // Parse query parameters
+    const {
+      page = "1",
+      limit = "10",
+      sort = "id",
+      order = "asc",
+      search = "",
+      category = "",
+    } = req.query as Record<string, string>;
+
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+    const offset = (pageNumber - 1) * limitNumber;
+
+    // Build filters
+    const filters = [eq(products.isDeleted, false)];
+    if (search) filters.push(like(products.name, `%${search}%`));
+    if (category) filters.push(eq(products.category, category));
+
+    // Total count of products (before flattening variants)
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(products)
+      .where(and(...filters));
+
+    // Sorting
+    const sortColumn = products[sort as keyof typeof products] || products.id;
+    const sortOrder =
+      order.toLowerCase() === "asc" ? asc(sortColumn) : desc(sortColumn);
+
+    // Fetch products
+    const productsList = await db
+      .select()
+      .from(products)
+      .where(and(...filters))
+      .orderBy(sortOrder)
+      .limit(limitNumber)
+      .offset(offset);
+
+    const productIds = productsList.map((p) => p.id);
+
+    let variantsMap: Record<number, any[]> = {};
+
+    if (productIds.length > 0) {
+      const variants = await db
+        .select()
+        .from(productVariants)
+        .where(inArray(productVariants.productId, productIds));
+
+      variantsMap = variants.reduce((acc, variant) => {
+        const pid = variant.productId;
+        if (!acc[pid]) acc[pid] = [];
+        acc[pid].push(variant);
+        return acc;
+      }, {} as Record<number, any[]>);
+    }
+
+    // Flatten into one object per variant
+    const flattened = productsList.flatMap((product) => {
+      const productVariantsList = variantsMap[product.id] || [];
+      if (productVariantsList.length === 0) {
+        // If no variants, still return a single object for the product
+        return [
+          {
+            productId: product.id,
+            productName: product.name,
+            category: product.category,
+            ...product,
+            variant: null,
+          },
+        ];
+      }
+      return productVariantsList.map((variant) => ({
+        productId: product.id,
+        productName: product.name,
+        category: product.category,
+        variant,
+      }));
+    });
+
+    // Response
+    res.json({
+      debuger: true,
+      products: flattened,
+      pagination: {
+        total: Number(count),
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(Number(count) / limitNumber),
+        hasNextPage: pageNumber * limitNumber < Number(count),
+        hasPrevPage: pageNumber > 1,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({
+      message: "Failed to fetch products",
+      error: String(error),
+    });
+  }
+};
 
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
@@ -96,6 +206,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
 
     // Response
     res.json({
+      debuger: true,
       products: enrichedProducts,
       pagination: {
         total: Number(count),
@@ -212,7 +323,7 @@ export const createProduct = async (req: Request, res: Response) => {
 // UPDATE product
 export const updateProduct = async (req: Request, res: Response) => {
   try {
-    // Add cache-busting headers
+    // Disable caching
     res.set({
       "Cache-Control": "no-cache, no-store, must-revalidate",
       Pragma: "no-cache",
@@ -222,44 +333,99 @@ export const updateProduct = async (req: Request, res: Response) => {
     const { id } = req.params;
     const productId = parseInt(id);
 
-    // Validate request body
-    const productData = insertProductSchema.parse(req.body);
+    // Validate request body (product + variants)
+    const parsedData = insertProductSchema.parse(req.body);
+    const { variants, ...productBaseData } = parsedData;
 
-    // Process image URLs to ensure local image paths are stored properly
-    const processedData = {
-      ...productData,
-      localImagePaths: productData.imageUrls || null,
+    // Process product data
+    const processedProductData = {
+      ...productBaseData,
+      localImagePaths: productBaseData.imageUrls || null,
       updatedAt: new Date(),
     };
 
-    // Update product
-    const [updatedProduct] = await db
-      .update(products)
-      .set(processedData)
-      .where(eq(products.id, productId))
-      .returning();
+    // Start transaction
+    const updatedProduct = await db.transaction(async (tx) => {
+      // 1️⃣ Update product
+      const [productUpdate] = await tx
+        .update(products)
+        .set(processedProductData)
+        .where(eq(products.id, productId))
+        .returning();
 
-    if (!updatedProduct) {
-      return res.status(404).json({ message: "Product not found" });
-    }
+      if (!productUpdate) {
+        throw new Error("Product not found");
+      }
 
-    console.log(
-      "Product updated successfully:",
-      updatedProduct.id,
-      updatedProduct.name
-    );
-    res.json(updatedProduct);
+      // 2️⃣ Get existing variants
+      const existingVariants = await tx
+        .select()
+        .from(productVariants)
+        .where(eq(productVariants.productId, productId));
+
+      const existingVariantIds = existingVariants.map((v) => v.id);
+      const incomingVariantIds = variants
+        .filter((v) => v.id) // variants with id means "update"
+        .map((v) => v.id);
+
+      // 3️⃣ Delete removed variants
+      const variantsToDelete = existingVariantIds.filter(
+        (id) => !incomingVariantIds.includes(id)
+      );
+      if (variantsToDelete.length) {
+        await tx
+          .delete(productVariants)
+          .where(inArray(productVariants.id, variantsToDelete));
+      }
+
+      // 4️⃣ Update existing variants
+      for (const variant of variants.filter((v) => v.id)) {
+        await tx
+          .update(productVariants)
+          .set({
+            price: variant.price,
+            discountPrice: variant.discountPrice,
+            quantity: variant.quantity,
+            unit: variant.unit,
+            stockQuantity: variant.stockQuantity,
+            sku: variant.sku,
+            updatedAt: new Date(),
+          })
+          .where(eq(productVariants.id, variant.id));
+      }
+
+      // 5️⃣ Insert new variants
+      const newVariants = variants.filter((v) => !v.id);
+      if (newVariants.length) {
+        await tx.insert(productVariants).values(
+          newVariants.map((variant) => ({
+            ...variant,
+            productId,
+          }))
+        );
+      }
+
+      return productUpdate;
+    });
+
+    // 6️⃣ Return updated product with variants
+    const finalProduct = await getProductWithVariants(productId);
+
+    res.json(finalProduct);
   } catch (error) {
     console.error("Error updating product:", error);
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         message: "Validation error",
-        errors: error.errors,
+        errors: error.flatten().fieldErrors,
       });
     }
-    res
-      .status(500)
-      .json({ message: "Failed to update product", error: String(error) });
+
+    res.status(500).json({
+      message: "Failed to update product",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 };
 
@@ -481,35 +647,33 @@ export const getProductStock = async (req: Request, res: Response) => {
 };
 
 // UPDATE product stock
-export const updateProductStock = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const productId = parseInt(id);
-    const { stockQuantity } = req.body;
+// export const updateProductStock = async (req: Request, res: Response) => {
+//   try {
+//     const variantId = parseInt(req.params.id);
+//     const { stockQuantity } = req.body;
 
-    if (typeof stockQuantity !== "number" || stockQuantity < 0) {
-      return res.status(400).json({
-        message: "Stock quantity must be a non-negative number",
-      });
-    }
+//     if (typeof stockQuantity !== "number" || stockQuantity < 0) {
+//       return res.status(400).json({
+//         message: "Stock quantity must be a non-negative number",
+//       });
+//     }
 
-    // Update product stock
-    const [updatedProduct] = await db
-      .update(products)
-      .set({ stockQuantity })
-      .where(eq(products.id, productId))
-      .returning();
+//     const [updatedVariant] = await db
+//       .update(productVariants)
+//       .set({ stockQuantity })
+//       .where(eq(productVariants.id, variantId))
+//       .returning();
 
-    if (!updatedProduct) {
-      return res.status(404).json({ message: "Product not found" });
-    }
+//     if (!updatedVariant) {
+//       return res.status(404).json({ message: "Variant not found" });
+//     }
 
-    res.json(updatedProduct);
-  } catch (error) {
-    console.error("Error updating product stock:", error);
-    res.status(500).json({
-      message: "Failed to update product stock",
-      error: String(error),
-    });
-  }
-};
+//     res.json(updatedVariant);
+//   } catch (error) {
+//     console.error("Error updating variant stock:", error);
+//     res.status(500).json({
+//       message: "Failed to update variant stock",
+//       error: String(error),
+//     });
+//   }
+// };

@@ -58,6 +58,7 @@ import {
   siteSettings,
   categories,
   insertCategorySchema,
+  productVariants,
 } from "@shared/schema";
 import { productData } from "./productData";
 import { farmerData } from "./farmerData";
@@ -976,23 +977,24 @@ export class DatabaseStorage implements IStorage {
     return featuredProducts;
   }
   async updateProductStock(
-    productId: number,
+    variantId: number,
     quantity: number
-  ): Promise<Product> {
-    const [updatedProduct] = await db
-      .update(products)
+  ): Promise<ProductVariant> {
+    console.log("runinningg.......");
+    const [updatedVariant] = await db
+      .update(productVariants)
       .set({
         stockQuantity: quantity,
         updatedAt: new Date(),
       })
-      .where(eq(products.id, productId))
+      .where(eq(productVariants.id, variantId))
       .returning();
 
-    if (!updatedProduct) {
-      throw new Error(`Product with id ${productId} not found`);
+    if (!updatedVariant) {
+      throw new Error(`Variant with id ${variantId} not found`);
     }
 
-    return updatedProduct;
+    return updatedVariant;
   }
 
   async validateStockAvailability(

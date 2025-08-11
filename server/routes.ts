@@ -38,7 +38,17 @@ import {
   productVariants,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, asc, inArray, and, isNotNull, like } from "drizzle-orm";
+import {
+  eq,
+  sql,
+  desc,
+  asc,
+  inArray,
+  and,
+  isNotNull,
+  like,
+  lte,
+} from "drizzle-orm";
 import adminRouter from "./admin";
 import imageRouter from "./imageRoutes";
 import { exportDatabase, exportTable } from "./databaseExport";
@@ -2286,15 +2296,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(`${apiPrefix}/admin/low-stock`, async (req, res) => {
     try {
       const threshold = parseInt(req.query.threshold as string) || 10;
-      const allProducts = await storage.getAllProducts();
-      const lowStockProducts = allProducts.filter(
-        (product) => product.stockQuantity <= threshold
-      );
+
+      // Fetch all variants with their parent product info
+      const lowStockVariants = await db
+        .select({
+          variantId: productVariants.id,
+          variantSku: productVariants.sku,
+          quantity: productVariants.quantity,
+          unit: productVariants.unit,
+          stockQuantity: productVariants.stockQuantity,
+          productId: products.id,
+          productName: products.name,
+        })
+        .from(productVariants)
+        .innerJoin(products, eq(products.id, productVariants.productId))
+        .where(lte(productVariants.stockQuantity, threshold));
+
+      // Construct a friendly variant name like "Apples - 1kg"
+      const formattedVariants = lowStockVariants.map((v) => ({
+        variantId: v.variantId,
+        variantName: `${v.productName} - ${v.quantity}${v.unit}`,
+        stockQuantity: v.stockQuantity,
+        productId: v.productId,
+        sku: v.variantSku,
+      }));
 
       res.json({
-        lowStockProducts,
+        lowStockVariants: formattedVariants,
         threshold,
-        count: lowStockProducts.length,
+        count: formattedVariants.length,
       });
     } catch (error) {
       console.error("Low stock check error:", error);

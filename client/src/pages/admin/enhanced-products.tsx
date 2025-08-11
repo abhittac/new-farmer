@@ -357,6 +357,7 @@ export default function EnhancedAdminProducts() {
   // Load products, categories, and farmers on component mount
   useEffect(() => {
     fetchProducts();
+
     fetchCategories();
     fetchMainCategories();
     fetchFarmers();
@@ -729,6 +730,222 @@ export default function EnhancedAdminProducts() {
           Add Product
         </Button>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Product List</CardTitle>
+          <div className="flex w-full max-w-sm items-center space-x-2 mt-2">
+            <Input
+              type="search"
+              placeholder="Search products, categories, SKUs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-9"
+            />
+            <Button type="submit" size="sm" variant="ghost">
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 p-4 rounded-md text-red-500">{error}</div>
+          ) : (
+            <>
+              <Table className="border">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Category</TableHead>
+
+                    <TableHead>Attributes</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-4">
+                        No products found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredProducts.map((product) => (
+                      <TableRow key={product.id}>
+                        {/* Product column */}
+                        <TableCell className="w-[300px] align-top">
+                          <div className="flex items-start gap-3">
+                            <div className="relative w-24 h-20 flex-shrink-0">
+                              <img
+                                src={product.imageUrl}
+                                alt={product.name}
+                                className="w-full h-full object-cover rounded-md"
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = placeholderImage;
+                                }}
+                              />
+                              {product.imageUrls?.length > 0 && (
+                                <div className="absolute -bottom-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                  +{product.imageUrls.length}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col overflow-hidden">
+                              <p className="font-medium truncate">
+                                {product.name}
+                              </p>
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {product.shortDescription}
+                              </p>
+                              {product.sku && (
+                                <p className="text-xs text-muted-foreground">
+                                  SKU: {product.sku}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        {/* Category */}
+                        <TableCell className="w-[150px]">
+                          {product.category}
+                        </TableCell>
+
+                        {/* Attributes */}
+                        <TableCell className="w-[160px]">
+                          <div className="flex flex-col gap-1">
+                            {product.naturallyGrown && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Leaf className="h-3 w-3 mr-1" />
+                                Natural
+                              </Badge>
+                            )}
+                            {product.chemicalFree && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Shield className="h-3 w-3 mr-1" />
+                                Chemical-Free
+                              </Badge>
+                            )}
+                            {product.premiumQuality && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Crown className="h-3 w-3 mr-1" />
+                                Premium
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Status */}
+                        <TableCell>
+                          {product.featured ? (
+                            <Badge variant="default">Featured</Badge>
+                          ) : (
+                            <Badge variant="outline">Standard</Badge>
+                          )}
+                        </TableCell>
+
+                        {/* Actions */}
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                handleToggleFeatured(
+                                  product.id,
+                                  Boolean(product.featured)
+                                )
+                              }
+                            >
+                              {product.featured ? (
+                                <StarOff className="h-4 w-4 text-amber-500" />
+                              ) : (
+                                <Star className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setupEditForm(product)}
+                              title="Edit Product"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setProductToEdit(product);
+                                setIsImageGalleryOpen(true);
+                              }}
+                              title="View Images"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setProductToDelete(product);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {(currentPage - 1) * productsPerPage + 1} to{" "}
+                  {Math.min(
+                    currentPage * productsPerPage,
+                    products.length * totalPages
+                  )}{" "}
+                  of {products.length * totalPages} products
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage <= 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Create/Edit Product Dialog */}
       <Dialog

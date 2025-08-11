@@ -92,7 +92,7 @@ export const products = pgTable("products", {
   category: text("category").notNull(),
   subcategory: text("subcategory"),
   imageUrl: text("image_url").notNull(),
-  isDeleted: boolean("is_deleted").default(false),
+  isDeleted: boolean("is_deleted").default(false).notNull(),
   imageUrls: text("image_urls").array(),
   thumbnailUrl: text("thumbnail_url"),
   localImagePaths: text("local_image_paths").array(),

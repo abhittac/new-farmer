@@ -142,6 +142,11 @@ adminRouter.get(
   productController.getAllProducts
 );
 adminRouter.get(
+  "/inventory-products",
+  authenticateAdmin,
+  productController.getAllInventoryProducts
+);
+adminRouter.get(
   "/products/:id",
   authenticateAdmin,
   productController.getProductById
@@ -176,11 +181,11 @@ adminRouter.get(
   authenticateAdmin,
   productController.getProductStock
 );
-adminRouter.patch(
-  "/products/:id/stock",
-  authenticateAdmin,
-  productController.updateProductStock
-);
+// adminRouter.patch(
+//   "/products/:id/stock",
+//   authenticateAdmin,
+//   productController.updateProductStock
+// );
 
 // Order routes
 adminRouter.get("/orders", authenticateAdmin, orderController.getAllOrders);
