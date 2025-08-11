@@ -110,15 +110,10 @@ interface EnhancedProduct {
 }
 const variantSchema = z.object({
   price: z.number().min(0.01, "Price must be greater than 0"),
-  discountPrice: z
-    .number()
-    .min(0)
-    .nullable()
-    .optional()
-    .refine(
-      (val) => val === null || val === undefined || val >= 0,
-      "Discount price must be positive"
-    ),
+  discountPrice: z.preprocess((val) => {
+    if (val === "" || val === false || val === undefined) return null;
+    return typeof val === "string" ? Number(val) : val;
+  }, z.number().min(0).nullable().optional()),
   quantity: z.number().min(0.01, "Quantity must be greater than 0"),
   unit: z.string().min(1, "Please select a unit"),
   stockQuantity: z.number().int().min(0, "Stock quantity must be 0 or greater"),
