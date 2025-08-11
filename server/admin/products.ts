@@ -38,7 +38,7 @@ export const getAllInventoryProducts = async (req: Request, res: Response) => {
     const offset = (pageNumber - 1) * limitNumber;
 
     // Build filters
-    const filters = [eq(products.isDeleted, false)];
+    const filters: any[] = [];
     if (search) filters.push(like(products.name, `%${search}%`));
     if (category) filters.push(eq(products.category, category));
 
@@ -70,8 +70,12 @@ export const getAllInventoryProducts = async (req: Request, res: Response) => {
       const variants = await db
         .select()
         .from(productVariants)
-        .where(inArray(productVariants.productId, productIds));
-
+        .where(
+          and(
+            inArray(productVariants.productId, productIds),
+            eq(productVariants.isDeleted, false)
+          )
+        );
       variantsMap = variants.reduce((acc, variant) => {
         const pid = variant.productId;
         if (!acc[pid]) acc[pid] = [];
@@ -631,7 +635,13 @@ export const getProductStockData = async (): Promise<any> => {
     const [outOfStockResult] = await db
       .select({ count: sql`count(*)` })
       .from(productVariants)
-      .where(eq(productVariants.stockQuantity, 0));
+      .where(
+        and(
+          eq(productVariants.isDeleted, false),
+          eq(productVariants.stockQuantity, 0)
+        )
+      );
+
     const outOfStock = Number(outOfStockResult?.count || "0");
 
     // Low stock variants count (e.g., stockQuantity > 0 and < 10)
@@ -639,20 +649,25 @@ export const getProductStockData = async (): Promise<any> => {
       .select({ count: sql`count(*)` })
       .from(productVariants)
       .where(
-        sql`${productVariants.stockQuantity} > 0 AND ${productVariants.stockQuantity} < 10`
+        and(
+          eq(productVariants.isDeleted, false),
+          sql`${productVariants.stockQuantity} > 0 AND ${productVariants.stockQuantity} < 10`
+        )
       );
     const lowStock = Number(lowStockResult?.count || "0");
 
     // Average stock quantity across variants
     const [avgStockResult] = await db
       .select({ avg: sql`AVG(${productVariants.stockQuantity})` })
-      .from(productVariants);
+      .from(productVariants)
+      .where(eq(productVariants.isDeleted, false));
     const avgStock = Number(avgStockResult?.avg || "0").toFixed(2);
 
     // Total distinct products (count distinct productId in variants)
     const [distinctProductsResult] = await db
       .select({ count: sql`count(DISTINCT ${productVariants.productId})` })
-      .from(productVariants);
+      .from(productVariants)
+      .where(eq(productVariants.isDeleted, false));
     const totalProducts = Number(distinctProductsResult?.count || "0");
 
     // Join variants → products for category grouping and top categories by variant count
@@ -663,6 +678,7 @@ export const getProductStockData = async (): Promise<any> => {
       })
       .from(productVariants)
       .innerJoin(products, eq(products.id, productVariants.productId))
+      .where(eq(productVariants.isDeleted, false))
       .groupBy(products.category)
       .orderBy(sql`count(*) DESC`)
       .limit(5);

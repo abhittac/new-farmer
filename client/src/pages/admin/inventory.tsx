@@ -70,17 +70,19 @@ export default function AdminInventory() {
       return response.json();
     },
     select: (data: any) => {
-      // Map API response to Product[]
-      return (data.products || []).map((item: any) => ({
-        id: item.variant.id,
-        name: item.productName,
-        sku: item.variant.sku,
-        category: item.category,
-        price: item.variant.discountPrice ?? item.variant.price,
-        stockQuantity: item.variant.stockQuantity,
-        quantity: item.variant.quantity,
-        unit: item.variant.unit,
-      }));
+      console.log("API data:", data);
+      return (data.products || [])
+        .filter((item) => item.variant)
+        .map((item: any) => ({
+          id: item.variant.id,
+          name: item.productName,
+          sku: item.variant.sku,
+          category: item.category,
+          price: item.variant.discountPrice ?? item.variant.price,
+          stockQuantity: item.variant.stockQuantity,
+          quantity: item.variant.quantity,
+          unit: item.variant.unit,
+        }));
     },
   });
 
@@ -105,7 +107,7 @@ export default function AdminInventory() {
     () => new Set(lowStockData.map((v) => v)),
     [lowStockData]
   );
-  console.log(">>>>lookup", Array.from(lowStockSet));
+
   // Update stock mutation
   const updateStockMutation = useMutation({
     mutationFn: async ({
@@ -175,7 +177,7 @@ export default function AdminInventory() {
   const startIndex = (currentPage - 1) * productsPerPage;
   const endIndex = startIndex + productsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
-
+  console.log(">>>>lookup", filteredProducts, rawProductsData);
   // Page change handler
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
@@ -265,7 +267,11 @@ export default function AdminInventory() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {Array.from(lowStockSet).length}
+              {
+                (rawProductsData || []).filter(
+                  (p) => p.stockQuantity <= 10 && p.stockQuantity !== 0
+                ).length
+              }
             </div>
             <p className="text-xs text-muted-foreground">
               Items below threshold
