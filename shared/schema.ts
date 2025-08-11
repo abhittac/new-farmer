@@ -79,6 +79,7 @@ export const productVariants = pgTable("product_variants", {
   unit: text("unit").notNull(),
   stockQuantity: integer("stock_quantity").notNull().default(0),
   sku: text("sku"),
+  isDeleted: boolean("is_deleted").default(false).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -92,7 +93,7 @@ export const products = pgTable("products", {
   category: text("category").notNull(),
   subcategory: text("subcategory"),
   imageUrl: text("image_url").notNull(),
-  isDeleted: boolean("is_deleted").default(false).notNull(),
+
   imageUrls: text("image_urls").array(),
   thumbnailUrl: text("thumbnail_url"),
   localImagePaths: text("local_image_paths").array(),
@@ -301,6 +302,9 @@ export const orderItems = pgTable("order_items", {
   productId: integer("product_id")
     .notNull()
     .references(() => products.id),
+  variantId: integer("variant_id")
+    .notNull()
+    .references(() => productVariants.id),
   quantity: integer("quantity").notNull(),
   price: doublePrecision("price").notNull(),
 });

@@ -148,57 +148,91 @@ export const getAllProducts = async (req: Request, res: Response) => {
     const limitNumber = parseInt(limit);
     const offset = (pageNumber - 1) * limitNumber;
 
-    // Build filters
-    const filters = [eq(products.isDeleted, false)];
-    if (search) filters.push(like(products.name, `%${search}%`));
-    if (category) filters.push(eq(products.category, category));
+    // Build product filters (no isDeleted here)
+    const productFilters = [];
+    if (search) productFilters.push(like(products.name, `%${search}%`));
+    if (category) productFilters.push(eq(products.category, category));
 
-    // Total count
-    const [{ count }] = await db
-      .select({ count: sql<number>`count(*)` })
+    // First, find product IDs that have at least one non-deleted variant
+    const variantSubQuery = db
+      .select({ productId: productVariants.productId })
+      .from(productVariants)
+      .where(eq(productVariants.isDeleted, false));
+
+    // Apply variant filtering with product filters + join condition
+    // We'll get unique product IDs that match product filters and have variants not deleted
+
+    const productIdsWithVariantsQuery = db
+      .select({ id: products.id })
       .from(products)
-      .where(and(...filters));
-
-    // Sorting
-    const sortColumn = products[sort as keyof typeof products] || products.id;
-    const sortOrder =
-      order.toLowerCase() === "asc" ? asc(sortColumn) : desc(sortColumn);
-
-    // Fetch products
-    const productsList = await db
-      .select()
-      .from(products)
-      .where(and(...filters))
-      .orderBy(sortOrder)
+      .where(
+        and(
+          ...productFilters,
+          // Only products where exists a non-deleted variant
+          sql`EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = products.id AND pv.is_deleted = false)`
+        )
+      )
+      .orderBy(
+        order.toLowerCase() === "asc"
+          ? asc(products[sort as keyof typeof products] || products.id)
+          : desc(products[sort as keyof typeof products] || products.id)
+      )
       .limit(limitNumber)
       .offset(offset);
 
-    const productIds = productsList.map((p) => p.id);
+    const productIdsWithVariants = await productIdsWithVariantsQuery;
 
-    let variantsMap: Record<number, any[]> = {};
+    const productIds = productIdsWithVariants.map((p) => p.id);
 
-    if (productIds.length > 0) {
-      const variants = await db
-        .select()
-        .from(productVariants)
-        .where(inArray(productVariants.productId, productIds));
-
-      variantsMap = variants.reduce((acc, variant) => {
-        const pid = variant.productId;
-        if (!acc[pid]) acc[pid] = [];
-        acc[pid].push(variant);
-        return acc;
-      }, {} as Record<number, any[]>);
-
-      // Debugging: log if no variants found for a product
-      productsList.forEach((p) => {
-        if (!variantsMap[p.id]) {
-          console.warn(`No variants found for product ID ${p.id}`);
-        }
+    if (productIds.length === 0) {
+      return res.json({
+        debuger: true,
+        products: [],
+        pagination: {
+          total: 0,
+          page: pageNumber,
+          limit: limitNumber,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
       });
     }
 
-    // Final mapping
+    // Fetch full product info for those IDs
+    const productsList = await db
+      .select()
+      .from(products)
+      .where(inArray(products.id, productIds));
+
+    // Count total products with variants not deleted (for pagination)
+    // We use COUNT DISTINCT products.id from products joined with variants where variant not deleted and product filters
+
+    const [{ count }] = await db
+      .select({ count: sql<number>`COUNT(DISTINCT products.id)` })
+      .from(products)
+      .leftJoin(productVariants, eq(products.id, productVariants.productId))
+      .where(and(...productFilters, eq(productVariants.isDeleted, false)));
+
+    // Fetch variants for the fetched products (only non-deleted variants)
+    const variants = await db
+      .select()
+      .from(productVariants)
+      .where(
+        and(
+          inArray(productVariants.productId, productIds),
+          eq(productVariants.isDeleted, false)
+        )
+      );
+
+    // Map variants by productId
+    const variantsMap = variants.reduce((acc, variant) => {
+      if (!acc[variant.productId]) acc[variant.productId] = [];
+      acc[variant.productId].push(variant);
+      return acc;
+    }, {} as Record<number, any[]>);
+
+    // Enrich products with variants
     const enrichedProducts = productsList.map((product) => ({
       ...product,
       variants: variantsMap[product.id] || [],
@@ -478,39 +512,70 @@ export const deleteProduct = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // Check if product is associated with any orders
-    const ordersWithProduct = await db
-      .select({
-        orders: orders,
-        order_items: orderItems,
-      })
-      .from(orders)
-      .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
-      .where(eq(orderItems.productId, productId));
+    // Get all variants of the product
+    const productVariantsList = await db
+      .select()
+      .from(productVariants)
+      .where(eq(productVariants.productId, productId));
 
-    if (ordersWithProduct.length > 0) {
-      const undeliveredOrders = ordersWithProduct.filter(
-        ({ orders }) =>
-          orders.status !== "delivered" && orders.status !== "shipped"
-      );
+    if (productVariantsList.length === 0) {
+      // No variants? Consider what you want to do here.
+      // Since variants define stock and deletion, you might want to
+      // simply respond or optionally soft delete product's updatedAt timestamp.
 
-      if (undeliveredOrders.length > 0) {
-        return res.status(400).json({
-          message: "Cannot delete product associated with undelivered orders",
-        });
-      }
+      return res.status(400).json({
+        message: "No variants found for this product, cannot delete",
+      });
     }
 
-    // Soft delete the product
-    const [updatedProduct] = await db
-      .update(products)
+    const variantIds = productVariantsList.map((v) => v.id);
+
+    // Find order items for these variants that belong to undelivered or unshipped orders
+    const ordersWithVariant = await db
+      .select({
+        order: orders,
+        orderItem: orderItems,
+        variantSku: productVariants.sku,
+        variantId: productVariants.id,
+      })
+      .from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .innerJoin(productVariants, eq(orderItems.variantId, productVariants.id))
+      .where(
+        and(
+          inArray(orderItems.variantId, variantIds),
+          sql`${orders.status} NOT IN ('delivered', 'shipped')`
+        )
+      );
+
+    if (ordersWithVariant.length > 0) {
+      // Collect unique SKUs of variants with pending orders
+      const pendingVariantSkus = Array.from(
+        new Set(ordersWithVariant.map((v) => v.variantSku))
+      );
+
+      return res.status(400).json({
+        message:
+          "Cannot delete product because some variants have pending orders",
+        pendingVariantSkus,
+      });
+    }
+
+    // Soft delete all variants of this product
+    await db
+      .update(productVariants)
       .set({ isDeleted: true, updatedAt: new Date() })
-      .where(eq(products.id, productId))
-      .returning();
+      .where(eq(productVariants.productId, productId));
+
+    // Optional: Update product's updatedAt timestamp for record keeping
+    await db
+      .update(products)
+      .set({ updatedAt: new Date() })
+      .where(eq(products.id, productId));
 
     res.json({
-      message: "Product soft-deleted successfully",
-      product: updatedProduct,
+      message: "Product variants soft-deleted successfully",
+      productId,
     });
   } catch (error) {
     console.error("Error deleting product:", error);
@@ -554,60 +619,67 @@ export const getProductCategories = async (req: Request, res: Response) => {
 // GET product stock data for dashboard
 export const getProductStockData = async (): Promise<any> => {
   try {
-    // Get total products count
+    // Total variants count
     const [totalResult] = await db
       .select({ count: sql`count(*)` })
-      .from(products)
-      .where(eq(products.isDeleted, false));
-    const totalProducts = Number(totalResult?.count || "0");
+      .from(productVariants)
+      .where(eq(productVariants.isDeleted, false)); // if applicable
 
-    // Get out of stock products count
+    const totalVariants = Number(totalResult?.count || "0");
+
+    // Out of stock variants count
     const [outOfStockResult] = await db
       .select({ count: sql`count(*)` })
-      .from(products)
-      .where(eq(products.stockQuantity, 0));
+      .from(productVariants)
+      .where(eq(productVariants.stockQuantity, 0));
     const outOfStock = Number(outOfStockResult?.count || "0");
 
-    // Get low stock products count (less than 10)
+    // Low stock variants count (e.g., stockQuantity > 0 and < 10)
     const [lowStockResult] = await db
       .select({ count: sql`count(*)` })
-      .from(products)
+      .from(productVariants)
       .where(
-        sql`${products.stockQuantity} > 0 AND ${products.stockQuantity} < 10`
+        sql`${productVariants.stockQuantity} > 0 AND ${productVariants.stockQuantity} < 10`
       );
     const lowStock = Number(lowStockResult?.count || "0");
 
-    // Get in stock products count
-    const inStock = totalProducts - outOfStock;
-
-    // Get average stock level
+    // Average stock quantity across variants
     const [avgStockResult] = await db
-      .select({ avg: sql`AVG(${products.stockQuantity})` })
-      .from(products);
+      .select({ avg: sql`AVG(${productVariants.stockQuantity})` })
+      .from(productVariants);
     const avgStock = Number(avgStockResult?.avg || "0").toFixed(2);
 
-    // Get top 5 categories by product count
+    // Total distinct products (count distinct productId in variants)
+    const [distinctProductsResult] = await db
+      .select({ count: sql`count(DISTINCT ${productVariants.productId})` })
+      .from(productVariants);
+    const totalProducts = Number(distinctProductsResult?.count || "0");
+
+    // Join variants → products for category grouping and top categories by variant count
     const topCategories = await db
       .select({
         category: products.category,
         count: sql`count(*)`,
       })
-      .from(products)
+      .from(productVariants)
+      .innerJoin(products, eq(products.id, productVariants.productId))
       .groupBy(products.category)
       .orderBy(sql`count(*) DESC`)
       .limit(5);
 
-    // Return stock data
     return {
       totalProducts,
-      inStock,
+      totalVariants,
+      inStock: totalVariants - outOfStock,
       outOfStock,
       lowStock,
       avgStock,
       stockStatus: {
-        inStock: Math.round((inStock / totalProducts) * 100),
-        outOfStock: Math.round((outOfStock / totalProducts) * 100),
-        lowStock: Math.round((lowStock / totalProducts) * 100),
+        inStock: Math.round(
+          ((totalVariants - outOfStock) / totalVariants) * 100
+        ),
+        outOfStock: Math.round((outOfStock / totalVariants) * 100),
+        lowStock: Math.round((lowStock / totalVariants) * 100),
       },
       topCategories: topCategories.map((c) => ({
         category: c.category,
@@ -618,6 +690,7 @@ export const getProductStockData = async (): Promise<any> => {
     console.error("Error getting product stock data:", error);
     return {
       totalProducts: 0,
+      totalVariants: 0,
       inStock: 0,
       outOfStock: 0,
       lowStock: 0,
