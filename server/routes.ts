@@ -2310,7 +2310,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .from(productVariants)
         .innerJoin(products, eq(products.id, productVariants.productId))
-        .where(lte(productVariants.stockQuantity, threshold));
+        .where(
+          and(
+            lte(productVariants.stockQuantity, threshold),
+            eq(productVariants.isDeleted, false) // use 0 if isDeleted is tinyint
+          )
+        );
 
       // Construct a friendly variant name like "Apples - 1kg"
       const formattedVariants = lowStockVariants.map((v) => ({

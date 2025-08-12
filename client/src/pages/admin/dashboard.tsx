@@ -268,7 +268,9 @@ export default function AdminDashboard() {
                     <span className="text-gray-600 dark:text-gray-400">
                       Total Products:
                     </span>
-                    <span className="font-medium">{stats.products.total}</span>
+                    <span className="font-medium">
+                      {stats.products.totalVariants}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">

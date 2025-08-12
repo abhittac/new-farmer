@@ -70,7 +70,6 @@ export default function AdminInventory() {
       return response.json();
     },
     select: (data: any) => {
-      console.log("API data:", data);
       return (data.products || [])
         .filter((item) => item.variant)
         .map((item: any) => ({
@@ -177,7 +176,6 @@ export default function AdminInventory() {
   const startIndex = (currentPage - 1) * productsPerPage;
   const endIndex = startIndex + productsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
-  console.log(">>>>lookup", filteredProducts, rawProductsData);
   // Page change handler
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
@@ -194,6 +192,7 @@ export default function AdminInventory() {
   // Stock editing handlers
   const handleStockEdit = (variantId: number, currentStock: number) => {
     setEditingStock({ [variantId]: currentStock }); // clear other edits
+    setTabValue("all-products");
     setTimeout(() => {
       inputRefs.current[variantId]?.focus();
     }, 50);
