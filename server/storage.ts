@@ -78,6 +78,7 @@ export interface IStorage {
   updateProductStock(productId: number, quantity: number): Promise<Product>;
   validateStockAvailability(
     productId: number,
+    variantId: number,
     requestedQuantity: number
   ): Promise<boolean>;
 
@@ -384,14 +385,16 @@ export class MemStorage implements IStorage {
 
   async validateStockAvailability(
     productId: number,
+    variantId: number,
     requestedQuantity: number
   ): Promise<boolean> {
     const product = this.products.get(productId);
-    if (!product) {
-      return false;
-    }
+    if (!product) return false;
 
-    return product.stockQuantity >= requestedQuantity;
+    const variant = product.variants?.find((v) => v.id === variantId);
+    if (!variant) return false;
+
+    return variant.stockQuantity >= requestedQuantity;
   }
 
   async getAllEnhancedProducts(): Promise<any[]> {
@@ -1007,19 +1010,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async validateStockAvailability(
-    productId: number,
+    variantId: number,
     requestedQuantity: number
   ): Promise<boolean> {
-    const [product] = await db
+    const [variant] = await db
       .select()
-      .from(products)
-      .where(eq(products.id, productId));
+      .from(productVariants)
+      .where(eq(productVariants.id, variantId));
+    console.log("debugger", variant, requestedQuantity);
+    if (!variant) return false;
 
-    if (!product) {
-      return false;
-    }
-
-    return product.stockQuantity >= requestedQuantity;
+    return variant.stockQuantity >= requestedQuantity;
   }
 
   async getAllEnhancedProducts(): Promise<any[]> {
@@ -1662,17 +1663,24 @@ export class DatabaseStorage implements IStorage {
     const [newOrder] = await db.insert(orders).values(order).returning();
     return newOrder;
   }
-
+  async deductVariantStock(variantId: number, quantity: number): Promise<void> {
+    await db
+      .update(productVariants)
+      .set({
+        stockQuantity: sql`${productVariants.stockQuantity} - ${quantity}`,
+      })
+      .where(eq(productVariants.id, variantId));
+  }
   async createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
-    // Validate stock availability before creating order item
+    // Validate stock availability by variant
     const isStockAvailable = await this.validateStockAvailability(
-      orderItem.productId,
+      orderItem.variantId,
       orderItem.quantity
     );
 
     if (!isStockAvailable) {
       throw new Error(
-        `Insufficient stock for product ID ${orderItem.productId}. Requested: ${orderItem.quantity}`
+        `Insufficient stock for variant ID ${orderItem.variantId}. Requested: ${orderItem.quantity}`
       );
     }
 
@@ -1682,8 +1690,8 @@ export class DatabaseStorage implements IStorage {
       .values(orderItem)
       .returning();
 
-    // Automatically deduct stock from inventory
-    await this.deductProductStock(orderItem.productId, orderItem.quantity);
+    // Deduct stock from the variant inventory
+    await this.deductVariantStock(orderItem.variantId, orderItem.quantity);
 
     return newOrderItem;
   }

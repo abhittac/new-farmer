@@ -1271,238 +1271,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
-  // Verify payment and create order
-  // app.post(`${apiPrefix}/payments/verify`, authenticate, async (req, res) => {
-  //   try {
-  //     const user = (req as any).user;
-  //     const sessionId = (req as any).sessionId;
-  //     const {
-  //       razorpayPaymentId,
-  //       razorpayOrderId,
-  //       razorpaySignature,
-  //       amount,
-  //       currency = "INR",
-  //       customerInfo,
-  //     } = req.body;
-
-  //     console.log("Payment verification request:", {
-  //       userId: user.id,
-  //       sessionId,
-  //       razorpayPaymentId,
-  //       razorpayOrderId,
-  //       amount,
-  //       currency,
-  //     });
-
-  //     // Validate required fields
-  //     if (!razorpayPaymentId || !razorpayOrderId || !razorpaySignature) {
-  //       return res
-  //         .status(400)
-  //         .json({ message: "Missing required payment fields" });
-  //     }
-
-  //     // Verify the payment signature
-  //     const body = razorpayOrderId + "|" + razorpayPaymentId;
-  //     const expectedSignature = crypto
-  //       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "")
-  //       .update(body)
-  //       .digest("hex");
-
-  //     if (expectedSignature !== razorpaySignature) {
-  //       console.error("Payment signature verification failed:", {
-  //         expected: expectedSignature,
-  //         received: razorpaySignature,
-  //       });
-  //       return res.status(400).json({ message: "Invalid payment signature" });
-  //     }
-
-  //     console.log("Payment signature verified successfully");
-
-  //     // Get the current cart
-  //     const cart = await storage.getCart(sessionId);
-
-  //     if (!cart.items || cart.items.length === 0) {
-  //       return res
-  //         .status(400)
-  //         .json({ message: "No items in cart to create order" });
-  //     }
-
-  //     // Validate stock availability for all items before creating order
-  //     const stockValidationPromises = cart.items.map(async (item) => {
-  //       const isAvailable = await storage.validateStockAvailability(
-  //         item.product.id,
-  //         item.quantity
-  //       );
-  //       if (!isAvailable) {
-  //         const product = await storage.getProductById(item.product.id);
-  //         throw new Error(
-  //           `Insufficient stock for ${item.product.name}. Available: ${
-  //             product?.stockQuantity || 0
-  //           }, Requested: ${item.quantity}`
-  //         );
-  //       }
-  //       return true;
-  //     });
-
-  //     try {
-  //       await Promise.all(stockValidationPromises);
-  //     } catch (stockError) {
-  //       return res.status(400).json({
-  //         message:
-  //           stockError instanceof Error
-  //             ? stockError.message
-  //             : "Stock validation failed",
-  //       });
-  //     }
-
-  //     // Create the order
-  //     console.log("Creating order with data:", {
-  //       userId: user.id,
-  //       sessionId,
-  //       paymentId: razorpayPaymentId,
-  //       total: amount / 100,
-  //       status: "confirmed",
-  //       customerInfo: customerInfo || "No address provided",
-  //       paymentMethod: "razorpay",
-  //     });
-
-  //     const generateRandomId = () => {
-  //       const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  //       const numbers = "0123456789";
-
-  //       let result = "";
-  //       for (let i = 0; i < 3; i++) {
-  //         result += letters.charAt(Math.floor(Math.random() * letters.length));
-  //       }
-
-  //       for (let i = 0; i < 3; i++) {
-  //         result += numbers.charAt(Math.floor(Math.random() * numbers.length));
-  //       }
-
-  //       return result;
-  //     };
-
-  //     const randomId = generateRandomId();
-  //     const order = await storage.createOrder({
-  //       userId: user.id,
-  //       sessionId,
-  //       paymentId: razorpayPaymentId,
-  //       total: amount / 100,
-  //       status: "confirmed",
-  //       customerInfo: customerInfo || "No address provided",
-  //       statusTimeline: [
-  //         {
-  //           status: "confirmed",
-  //           message: "Your order has been placed successfully",
-  //           date: new Date().toISOString(),
-  //         },
-  //       ],
-  //       paymentMethod: "razorpay",
-  //       trackingId: randomId,
-  //     });
-
-  //     console.log("Order created successfully:", order);
-
-  //     // Create order items with automatic stock deduction
-  //     console.log("Creating order items for", cart.items.length, "items");
-  //     for (const item of cart.items) {
-  //       console.log("Processing order item:", {
-  //         orderId: order.id,
-  //         productId: item.product.id,
-  //         quantity: item.quantity,
-  //         price: item.product.price,
-  //       });
-
-  //       await storage.createOrderItem({
-  //         orderId: order.id,
-  //         productId: item.product.id,
-  //         quantity: item.quantity,
-  //         price: item.product.price,
-  //       });
-  //     }
-
-  //     console.log("All order items created successfully");
-
-  //     // Record the payment with order reference
-  //     console.log("Recording payment with order reference");
-  //     const payment = await storage.createPayment({
-  //       userId: user.id,
-  //       orderId: order.id,
-  //       razorpayPaymentId,
-  //       amount: amount / 100,
-  //       currency,
-  //       status: "completed",
-  //     });
-
-  //     console.log("Payment recorded successfully:", payment);
-
-  //     // Send order notification email to admin
-  //     try {
-  //       const orderItems = await storage.getOrderItemsByOrderId(order.id);
-  //       const orderItemsWithProducts = await Promise.all(
-  //         orderItems.map(async (item) => {
-  //           const product = await storage.getProductById(item.productId);
-  //           return {
-  //             ...item,
-  //             product: product,
-  //           };
-  //         })
-  //       );
-
-  //       // Debug: Log actual user data being sent in email
-  //       console.log("Sending email with user data:", {
-  //         userId: user.id,
-  //         customerEmail: user.email,
-  //         customerName: user.name,
-  //         orderId: order.id,
-  //       });
-
-  //       await emailService.sendOrderNotificationToAdmin({
-  //         order,
-  //         orderItems: orderItemsWithProducts,
-  //         customerEmail: user.email,
-  //         customerName: user.name || "Customer",
-  //         totalAmount: amount / 100,
-  //       });
-
-  //       console.log("Order notification email sent to admin successfully");
-  //     } catch (emailError) {
-  //       console.error("Failed to send order notification email:", emailError);
-  //       // Don't fail the order creation if email fails
-  //     }
-
-  //     // Clear the cart after successful order creation
-  //     console.log("Clearing cart for sessionId:", sessionId);
-  //     await storage.clearCart(sessionId);
-  //     console.log("Cart cleared successfully");
-
-  //     res.json({
-  //       message: "Payment successful and order created",
-  //       payment,
-  //       order,
-  //     });
-  //   } catch (error) {
-  //     console.error("Payment verification error:", error);
-
-  //     // Provide detailed error information for debugging
-  //     let errorMessage = "Payment verification failed";
-  //     if (error instanceof Error) {
-  //       errorMessage = error.message;
-  //       console.error("Detailed error:", {
-  //         message: error.message,
-  //         stack: error.stack,
-  //         name: error.name,
-  //       });
-  //     }
-
-  //     res.status(500).json({
-  //       message: errorMessage,
-  //       details:
-  //         error instanceof Error ? error.message : "Unknown error occurred",
-  //     });
-  //   }
-  // });
-
   app.post(
     `${apiPrefix}/payments/verify`,
     authenticate,
@@ -1548,7 +1316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Get cart
         const cart = await storage.getCart(sessionId);
-        console.log("sessionid", sessionId);
+
         if (!cart.items || cart.items.length === 0) {
           return res
             .status(400)
@@ -1559,7 +1327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await Promise.all(
           cart.items.map(async (item) => {
             const isAvailable = await storage.validateStockAvailability(
-              item.product.id,
+              item.variant.id,
               item.quantity
             );
             if (!isAvailable) {
@@ -1607,8 +1375,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createOrderItem({
             orderId: order.id,
             productId: item.product.id,
+            variantId: item.variant.id, // ✅ pass variant ID
             quantity: item.quantity,
-            price: item.product.price,
+            price: item.variant.discountPrice ?? item.variant.price, // ✅ final price
           });
         }
 

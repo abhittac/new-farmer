@@ -613,7 +613,7 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
 }));
 // Cart with items
 export interface CartWithItems extends Cart {
-  items: (CartItem & { product: Product })[];
+  items: (CartItem & { product: Product; variant: ProductVariant })[];
   totalItems: number;
   subtotal: number;
   shipping: number;
