@@ -1788,42 +1788,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = (req as any).user;
 
-      // Get delivered orders from database
-      const deliveredOrders = await storage.getOrdersByUserId(user.id);
-      const filteredDeliveredOrders = deliveredOrders.filter(
-        (order) => order.status === "delivered"
+      // ✅ Single query fetch
+      const deliveredOrders = await storage.getDeliveredOrdersWithItems(
+        user.id
       );
 
-      // Fetch order items for each delivered order with rating status
-      const ordersWithItems = await Promise.all(
-        filteredDeliveredOrders.map(async (order) => {
-          const items = await storage.getOrderItemsByOrderId(order.id);
-
-          // Check if user has already rated each product in this order
+      // ✅ Map rating status without extra product fetch
+      const ordersWithRatings = await Promise.all(
+        deliveredOrders.map(async (order) => {
           const itemsWithRatingStatus = await Promise.all(
-            items.map(async (item) => {
+            order.items.map(async (item) => {
               const canRate = await storage.canUserReviewProduct(
                 user.id,
-                item.productId
+                item.productId,
+                item.variantId // pass variant if needed
               );
-              const hasRated = !canRate; // If can't rate, means already rated
               return {
                 ...item,
                 canRate,
-                hasRated,
+                hasRated: !canRate,
               };
             })
           );
-
-          return {
-            ...order,
-            items: itemsWithRatingStatus,
-          };
+          return { ...order, items: itemsWithRatingStatus };
         })
       );
 
-      res.json({ orders: ordersWithItems });
+      res.json({ orders: ordersWithRatings });
     } catch (error) {
+      console.error("Error fetching delivered orders:", error);
       res.status(500).json({ message: "Failed to fetch delivered orders" });
     }
   });

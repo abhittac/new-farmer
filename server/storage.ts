@@ -964,7 +964,20 @@ export class DatabaseStorage implements IStorage {
     const productsList = await db.select().from(products);
     return productsList;
   }
-
+  async getDeliveredOrdersWithItems(userId: number): Promise<Order[]> {
+    return db.query.orders.findMany({
+      where: and(eq(orders.userId, userId), eq(orders.status, "delivered")),
+      with: {
+        items: {
+          with: {
+            product: true,
+            variant: true, // ✅ include variant info directly
+          },
+        },
+      },
+      orderBy: [desc(orders.deliveredAt)],
+    });
+  }
   async getProductById(id: number): Promise<Product | undefined> {
     const [product] = await db
       .select()
@@ -1064,40 +1077,40 @@ export class DatabaseStorage implements IStorage {
 
   async canUserReviewProduct(
     userId: number,
-    productId: number
+    productId: number,
+    variantId?: number
   ): Promise<boolean> {
-    // User can review a product if they have an order with status "delivered" containing this product
-    // and they haven't already reviewed it
-
-    // 1. Check if user has already reviewed this product
-    const existingReviews = await db
+    // Check if user has already reviewed this product variant (if variantId provided)
+    const existingReviewsQuery = db
       .select()
       .from(productReviews)
       .where(
         and(
           eq(productReviews.userId, userId),
-          eq(productReviews.productId, productId)
+          eq(productReviews.productId, productId),
+          variantId ? eq(productReviews.variantId, variantId) : sql`TRUE`
         )
       );
 
-    if (existingReviews.length > 0) {
-      return false; // User has already reviewed this product
-    }
+    const existingReviews = await existingReviewsQuery;
 
-    // 2. Check if user has purchased this product and it has been delivered
-    const deliveredOrders = await db
-      .select({
-        orderId: orders.id,
-      })
+    if (existingReviews.length > 0) return false;
+
+    // Check if user has purchased this product (and variant if provided) in delivered order
+    const deliveredOrdersQuery = db
+      .select({ orderId: orders.id })
       .from(orders)
       .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
       .where(
         and(
           eq(orders.userId, userId),
+          eq(orders.status, "delivered"),
           eq(orderItems.productId, productId),
-          eq(orders.status, "delivered") // Only delivered orders qualify for review
+          variantId ? eq(orderItems.variantId, variantId) : sql`TRUE`
         )
       );
+
+    const deliveredOrders = await deliveredOrdersQuery;
 
     return deliveredOrders.length > 0;
   }

@@ -323,6 +323,7 @@ export const productReviews = pgTable("product_reviews", {
   customerName: text("customer_name").notNull(),
   rating: doublePrecision("rating").notNull(),
   reviewText: text("review_text").notNull(),
+  variantId: integer("variant_id").notNull(),
   verified: boolean("verified").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
