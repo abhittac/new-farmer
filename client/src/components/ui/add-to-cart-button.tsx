@@ -49,6 +49,7 @@ export function AddToCartButton({
       if (selectedVariantId === undefined) {
         throw new Error("selectedVariantId is required");
       }
+
       await addToCart(product.id, selectedVariantId, selectedQuantity);
 
       toast({

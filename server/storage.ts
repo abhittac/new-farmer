@@ -63,7 +63,7 @@ import {
 import { productData } from "./productData";
 import { farmerData } from "./farmerData";
 import { db } from "./db";
-import { eq, and, isNotNull, sql } from "drizzle-orm";
+import { eq, and, isNotNull, sql, inArray } from "drizzle-orm";
 import { desc } from "drizzle-orm";
 import { s } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
 
@@ -978,20 +978,54 @@ export class DatabaseStorage implements IStorage {
       orderBy: [desc(orders.deliveredAt)],
     });
   }
-  async getProductById(id: number): Promise<Product | undefined> {
+
+  async getProductById(
+    id: number
+  ): Promise<(Product & { variants: ProductVariant[] }) | undefined> {
+    // 1. Fetch the product by id
     const [product] = await db
       .select()
       .from(products)
       .where(eq(products.id, id));
-    return product;
+
+    if (!product) return undefined;
+
+    // 2. Fetch all variants for this product
+    const variants = await db
+      .select()
+      .from(productVariants)
+      .where(eq(productVariants.productId, id));
+
+    // 3. Return product object with variants array included
+    return {
+      ...product,
+      variants,
+    };
   }
 
   async getProductsByCategory(category: string): Promise<Product[]> {
+    // Fetch all products in the category
     const categoryProducts = await db
       .select()
       .from(products)
       .where(eq(products.category, category));
-    return categoryProducts;
+
+    // Get product IDs to fetch variants
+    const productIds = categoryProducts.map((p) => p.id);
+
+    // Fetch variants for all these products
+    const variants = await db
+      .select()
+      .from(productVariants)
+      .where(inArray(productVariants.productId, productIds));
+
+    // Attach variants to their corresponding product
+    const productsWithVariants = categoryProducts.map((product) => ({
+      ...product,
+      variants: variants.filter((v) => v.productId === product.id),
+    }));
+
+    return productsWithVariants;
   }
 
   async getFeaturedProducts(): Promise<Product[]> {

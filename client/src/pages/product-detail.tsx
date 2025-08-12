@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -71,7 +71,16 @@ export default function ProductDetail() {
   const filteredRelatedProducts = relatedProducts
     .filter((p: any) => p.id !== productId)
     .slice(0, 4);
+  const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
 
+  // Set default variant on product load or when product changes
+  useEffect(() => {
+    if (product?.variants && product.variants.length > 0) {
+      setSelectedVariant(product.variants[0]);
+    } else {
+      setSelectedVariant(null);
+    }
+  }, [product]);
   if (isLoadingProduct || isLoadingFarmer) {
     return (
       <div className="container mx-auto px-4 py-16 flex justify-center items-center min-h-screen">
@@ -183,7 +192,26 @@ export default function ProductDetail() {
                   </div>
                 )}
               </div>
-
+              {product?.variants && product.variants.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-semibold mb-2">Choose Variant:</h4>
+                  <div className="flex flex-wrap gap-3">
+                    {product.variants.map((variant: any) => (
+                      <button
+                        key={variant.id}
+                        onClick={() => setSelectedVariant(variant)}
+                        className={`px-4 py-2 border rounded-md ${
+                          selectedVariant?.id === variant.id
+                            ? "border-primary bg-primary/20"
+                            : "border-gray-300 hover:bg-gray-100"
+                        }`}
+                      >
+                        {variant.quantity} {variant.unit}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {/* Stock Status */}
               {Number(product?.stockQuantity) !== 0 &&
                 Number(product.stockQuantity) <= 10 && (
@@ -195,50 +223,77 @@ export default function ProductDetail() {
                 )}
 
               <div className="flex items-center space-x-4 mb-8">
-                {product?.discountPrice &&
-                product.discountPrice < product.price ? (
+                {selectedVariant?.discountPrice &&
+                selectedVariant.discountPrice < selectedVariant.price ? (
                   <div className="flex items-center space-x-3">
                     <span className="text-forest text-3xl font-bold">
-                      ₹{product.discountPrice.toFixed(2)}/{formatUnit(product.unit, product.quantity)}
+                      ₹{selectedVariant.discountPrice.toFixed(2)}
                     </span>
                     <span className="text-gray-500 line-through text-xl">
-                      ₹{product.price.toFixed(2)}/{formatUnit(product.unit, product.quantity)}
+                      ₹{selectedVariant.price.toFixed(2)}
                     </span>
                     <span className="bg-red-500 text-white px-2 py-1 rounded text-sm font-semibold">
                       {Math.round(
-                        ((product.price - product.discountPrice) /
-                          product.price) *
-                          100,
+                        ((selectedVariant.price -
+                          selectedVariant.discountPrice) /
+                          selectedVariant.price) *
+                          100
                       )}
                       % OFF
                     </span>
                   </div>
                 ) : (
                   <span className="text-forest text-3xl font-bold">
-                    ₹{product?.price ? product.price.toFixed(2) : "0.00"}/{formatUnit(product?.unit, product?.quantity)}
+                    ₹
+                    {selectedVariant
+                      ? selectedVariant.price.toFixed(2)
+                      : product?.price?.toFixed(2) || "0.00"}
+                    /
+                    {selectedVariant
+                      ? formatUnit(
+                          selectedVariant.unit,
+                          selectedVariant.quantity
+                        )
+                      : formatUnit(product?.unit, product?.quantity)}
                   </span>
                 )}
                 <div className="text-sm text-olive bg-background/80 px-3 py-1 rounded">
-                  In Stock: {product?.stockQuantity || 0}
+                  In Stock:{" "}
+                  {selectedVariant?.stockQuantity ??
+                    product?.stockQuantity ??
+                    0}
                 </div>
               </div>
-
               <div className="mb-8">
-                {product ? (
-                  Number(product.stockQuantity) > 0 ? (
+                {selectedVariant ? (
+                  selectedVariant.stockQuantity > 0 ? (
                     <AddToCartButton
                       product={product}
+                      selectedVariantId={selectedVariant.id}
                       showIcon={true}
                       fullWidth
                       showQuantitySelector={true}
-                      max={product.stockQuantity}
+                      max={selectedVariant.stockQuantity}
                     />
                   ) : (
                     <span className="text-red-600 font-semibold">
                       Out of Stock
                     </span>
                   )
-                ) : null}
+                ) : Number(product.stockQuantity) > 0 ? (
+                  <AddToCartButton
+                    product={product}
+                    selectedVariantId={selectedVariant.id}
+                    showIcon={true}
+                    fullWidth
+                    showQuantitySelector={true}
+                    max={product.stockQuantity}
+                  />
+                ) : (
+                  <span className="text-red-600 font-semibold">
+                    Out of Stock
+                  </span>
+                )}
               </div>
 
               {farmer && (
