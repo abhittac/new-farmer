@@ -1663,7 +1663,10 @@ export class DatabaseStorage implements IStorage {
     const [newOrder] = await db.insert(orders).values(order).returning();
     return newOrder;
   }
-  async deductVariantStock(variantId: number, quantity: number): Promise<void> {
+  private async deductVariantStock(
+    variantId: number,
+    quantity: number
+  ): Promise<void> {
     await db
       .update(productVariants)
       .set({
@@ -1697,36 +1700,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Helper method to deduct stock from product inventory
-  private async deductProductStock(
-    productId: number,
-    quantity: number
-  ): Promise<void> {
-    const [currentProduct] = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, productId));
-
-    if (!currentProduct) {
-      throw new Error(`Product with id ${productId} not found`);
-    }
-
-    const newStockQuantity = currentProduct.stockQuantity - quantity;
-
-    // Prevent negative stock
-    if (newStockQuantity < 0) {
-      throw new Error(
-        `Cannot deduct ${quantity} items from product ${productId}. Available stock: ${currentProduct.stockQuantity}`
-      );
-    }
-
-    await db
-      .update(products)
-      .set({
-        stockQuantity: newStockQuantity,
-        updatedAt: new Date(),
-      })
-      .where(eq(products.id, productId));
-  }
 
   async getOrdersByUserId(userId: number): Promise<Order[]> {
     console.log("Querying orders for user ID:", userId);
@@ -1750,17 +1723,22 @@ export class DatabaseStorage implements IStorage {
         id: orderItems.id,
         orderId: orderItems.orderId,
         productId: orderItems.productId,
+        variantId: orderItems.variantId,
         quantity: orderItems.quantity,
         price: orderItems.price,
+        discountPrice: orderItems.discountPrice,
         productName: products.name,
-        unit: products.unit, // 👈 NEW
-        productQuantity: products.quantity, //
+        productImage: products.imageUrl,
+        variantName: productVariants.name,
+        unit: productVariants.unit,
+        variantSku: productVariants.sku,
+        stockQuantity: productVariants.stockQuantity,
       })
       .from(orderItems)
       .innerJoin(products, eq(orderItems.productId, products.id))
+      .leftJoin(productVariants, eq(orderItems.variantId, productVariants.id))
       .where(eq(orderItems.orderId, orderId));
   }
-
   async updateOrderStatus(id: number, status: string): Promise<Order> {
     const [order] = await db
       .update(orders)

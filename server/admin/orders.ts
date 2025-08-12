@@ -19,7 +19,19 @@ import {
   Order,
   OrderItem,
 } from "@shared/schema";
-import { eq, like, desc, asc, and, gte, lte, sql, ne, isNotNull, isNull } from "drizzle-orm";
+import {
+  eq,
+  like,
+  desc,
+  asc,
+  and,
+  gte,
+  lte,
+  sql,
+  ne,
+  isNotNull,
+  isNull,
+} from "drizzle-orm";
 
 // abhi
 // Get monthly sales for current year
@@ -506,7 +518,10 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 };
 
 // Customer requests order cancellation
-export const requestOrderCancellation = async (req: AuthenticatedRequest, res: Response) => {
+export const requestOrderCancellation = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -517,8 +532,8 @@ export const requestOrderCancellation = async (req: AuthenticatedRequest, res: R
     }
 
     if (!reason || reason.trim().length < 10) {
-      return res.status(400).json({ 
-        message: "Cancellation reason must be at least 10 characters long" 
+      return res.status(400).json({
+        message: "Cancellation reason must be at least 10 characters long",
       });
     }
 
@@ -534,15 +549,15 @@ export const requestOrderCancellation = async (req: AuthenticatedRequest, res: R
     // Check if order can be cancelled - per requirements: "Confirmed", "Pending", or "Processing"
     const cancellableStatuses = ["pending", "confirmed", "processing"];
     if (!cancellableStatuses.includes(existingOrder.status)) {
-      return res.status(400).json({ 
-        message: "Order cannot be cancelled at this stage" 
+      return res.status(400).json({
+        message: "Order cannot be cancelled at this stage",
       });
     }
 
     // Check if cancellation already requested
     if (existingOrder.cancellationRequestedAt) {
-      return res.status(400).json({ 
-        message: "Cancellation request already submitted" 
+      return res.status(400).json({
+        message: "Cancellation request already submitted",
       });
     }
 
@@ -582,7 +597,10 @@ export const requestOrderCancellation = async (req: AuthenticatedRequest, res: R
 };
 
 // Admin approves/rejects cancellation request
-export const processCancellationRequest = async (req: AuthenticatedRequest, res: Response) => {
+export const processCancellationRequest = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { id } = req.params;
     const { action, rejectionReason } = req.body; // action: 'approve' or 'reject'
@@ -593,12 +611,17 @@ export const processCancellationRequest = async (req: AuthenticatedRequest, res:
     }
 
     if (!["approve", "reject"].includes(action)) {
-      return res.status(400).json({ message: "Invalid action. Use 'approve' or 'reject'" });
+      return res
+        .status(400)
+        .json({ message: "Invalid action. Use 'approve' or 'reject'" });
     }
 
-    if (action === "reject" && (!rejectionReason || rejectionReason.trim().length < 5)) {
-      return res.status(400).json({ 
-        message: "Rejection reason must be at least 5 characters long" 
+    if (
+      action === "reject" &&
+      (!rejectionReason || rejectionReason.trim().length < 5)
+    ) {
+      return res.status(400).json({
+        message: "Rejection reason must be at least 5 characters long",
       });
     }
 
@@ -612,14 +635,17 @@ export const processCancellationRequest = async (req: AuthenticatedRequest, res:
     }
 
     if (!existingOrder.cancellationRequestedAt) {
-      return res.status(400).json({ 
-        message: "No cancellation request found for this order" 
+      return res.status(400).json({
+        message: "No cancellation request found for this order",
       });
     }
 
-    if (existingOrder.cancellationApprovedAt || existingOrder.cancellationRejectedAt) {
-      return res.status(400).json({ 
-        message: "Cancellation request already processed" 
+    if (
+      existingOrder.cancellationApprovedAt ||
+      existingOrder.cancellationRejectedAt
+    ) {
+      return res.status(400).json({
+        message: "Cancellation request already processed",
       });
     }
 
@@ -635,7 +661,7 @@ export const processCancellationRequest = async (req: AuthenticatedRequest, res:
         cancellationApprovedAt: now,
         updatedAt: now,
       };
-      
+
       newEvent = {
         status: "cancelled",
         message: "Order cancelled - Cancellation request approved by admin",
@@ -647,7 +673,7 @@ export const processCancellationRequest = async (req: AuthenticatedRequest, res:
         cancellationRejectionReason: rejectionReason.trim(),
         updatedAt: now,
       };
-      
+
       newEvent = {
         status: "cancellation_rejected",
         message: `Cancellation request rejected: ${rejectionReason}`,
@@ -681,7 +707,10 @@ export const processCancellationRequest = async (req: AuthenticatedRequest, res:
 };
 
 // Get orders with pending cancellation requests (for admin)
-export const getPendingCancellationRequests = async (req: AuthenticatedRequest, res: Response) => {
+export const getPendingCancellationRequests = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const pendingRequests = await db.query.orders.findMany({
       where: and(
@@ -693,6 +722,7 @@ export const getPendingCancellationRequests = async (req: AuthenticatedRequest, 
         items: {
           with: {
             product: true,
+            variant: true, // ✅ Add variant info
           },
         },
         user: {

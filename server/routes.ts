@@ -36,6 +36,7 @@ import {
   insertOrderSchema,
   User,
   productVariants,
+  discounts,
 } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -1628,82 +1629,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(`${apiPrefix}/orders/history`, authenticate, async (req, res) => {
     try {
       const user = (req as any).user;
-      console.log("Fetching orders for user ID:", user.id);
-      const orders = await storage.getOrdersByUserId(user.id);
-      console.log("Retrieved orders:", orders.length, "for user", user.id);
 
-      // Fetch comprehensive order details for each order
-      const ordersWithDetails = await Promise.all(
-        orders.map(async (order) => {
-          // Get order items with product details
-          const orderItems = await storage.getOrderItemsByOrderId(order.id);
-          const itemsWithProducts = await Promise.all(
-            orderItems.map(async (item) => {
-              const product = await storage.getProductById(item.productId);
-              return {
-                ...item,
-                product: product
-                  ? {
-                      id: product.id,
-                      name: product.name,
-                      sku: product.sku,
-                      imageUrl: product.imageUrl,
-                      category: product.category,
-                    }
-                  : null,
-              };
-            })
-          );
+      // Step 1: Fetch all orders for the user
+      const ordersList = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.userId, user.id))
+        .orderBy(desc(orders.createdAt));
 
-          // Get payment details
-          let payment = null;
-          try {
-            const payments = await storage.getPaymentsByUserId(user.id);
-            payment = payments.find((p) => p.orderId === order.id);
-          } catch (error) {
-            console.log("Payment details not found for order:", order.id);
-          }
+      if (!ordersList.length) {
+        return res.json({ orders: [] });
+      }
 
-          // Get applied discounts
-          let appliedDiscounts = [];
-          try {
-            if (order.discountId) {
-              const discount = await storage.getDiscountById(order.discountId);
-              if (discount) {
-                appliedDiscounts.push({
+      const orderIds = ordersList.map((o) => o.id);
+
+      // Step 2: Fetch all order items + products in ONE query
+      const items = await db
+        .select({
+          orderId: orderItems.orderId,
+          quantity: orderItems.quantity,
+          price: orderItems.price,
+          product: {
+            id: products.id,
+            name: products.name,
+
+            imageUrl: products.imageUrl,
+            category: products.category,
+          },
+          variant: {
+            id: productVariants.id,
+
+            sku: productVariants.sku,
+          },
+        })
+        .from(orderItems)
+        .leftJoin(products, eq(orderItems.productId, products.id))
+        .leftJoin(
+          productVariants,
+          eq(orderItems.variantId, productVariants.id)
+        );
+      console.log("debugger2", items);
+      // Step 3: Fetch all payments for these orders in one query
+      const paymentsList = await db
+        .select()
+        .from(payments)
+        .where(inArray(payments.orderId, orderIds));
+      console.log("debugger3", paymentsList);
+      // Step 4: Fetch all discounts for these orders in one query
+      const discountIds = ordersList
+        .map((o) => o.discountId)
+        .filter(Boolean) as number[];
+
+      const discountsList = discountIds.length
+        ? await db
+            .select()
+            .from(discounts)
+            .where(inArray(discounts.id, discountIds))
+        : [];
+      console.log("debugger4", discountsList);
+      // Step 5: Combine into final result
+      const ordersWithDetails = ordersList.map((order) => {
+        const orderItemsData = items.filter((i) => i.orderId === order.id);
+        const payment = paymentsList.find((p) => p.orderId === order.id);
+        const discount = discountsList.find((d) => d.id === order.discountId);
+
+        return {
+          ...order,
+          items: orderItemsData,
+          payment: payment
+            ? {
+                id: payment.id,
+                amount: payment.amount,
+                status: payment.status,
+                method: payment.razorpayPaymentId ? "Razorpay" : "Unknown",
+                razorpayPaymentId: payment.razorpayPaymentId,
+              }
+            : null,
+          appliedDiscounts: discount
+            ? [
+                {
                   id: discount.id,
                   code: discount.code,
                   type: discount.type,
                   value: discount.value,
                   description: discount.description,
-                });
-              }
-            }
-          } catch (error) {
-            console.log("Discount details not found for order:", order.id);
-          }
-
-          return {
-            ...order,
-            items: itemsWithProducts,
-            payment: payment
-              ? {
-                  id: payment.id,
-                  amount: payment.amount,
-                  status: payment.status,
-                  method: payment.razorpayPaymentId ? "Razorpay" : "Unknown",
-                  razorpayPaymentId: payment.razorpayPaymentId,
-                }
-              : null,
-            appliedDiscounts,
-            shippingAddress: order.shippingAddress || "Default address",
-            billingAddress:
-              order.billingAddress ||
-              order.shippingAddress ||
-              "Default address",
-          };
-        })
-      );
+                },
+              ]
+            : [],
+          shippingAddress: order.shippingAddress || "Default address",
+          billingAddress:
+            order.billingAddress || order.shippingAddress || "Default address",
+        };
+      });
 
       res.json({ orders: ordersWithDetails });
     } catch (error) {

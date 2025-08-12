@@ -223,9 +223,21 @@ export default function OrderCancellations() {
                     <ul className="space-y-1 text-sm">
                       {request.items.map((item, index) => (
                         <li key={index} className="flex justify-between">
-                          <span>
-                            {item.product.name} × {item.quantity}
-                          </span>
+                          <div>
+                            <span>
+                              {item.product.name} × {item.quantity}
+                            </span>{" "}
+                            <br />
+                            <span>
+                              <span className="font-bold">Variant:</span>
+                              {item.variant.quantity}
+                              {item.variant.unit}
+                            </span>
+                            <span className="mx-2">
+                              <span className="font-bold">SKU:</span>
+                              {item.variant.sku}
+                            </span>
+                          </div>
                           <span>₹{item.price.toFixed(2)}</span>
                         </li>
                       ))}
