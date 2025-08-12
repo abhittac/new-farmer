@@ -127,6 +127,9 @@ export default function Cart() {
                               item.variant.discountPrice * item.quantity
                             ).toFixed(2)}
                           </p>
+                          <span className="text-gray-500 line-through text-sm">
+                            ₹ {(item.variant.price * item.quantity).toFixed(2)}
+                          </span>
                           <p className="text-muted-foreground text-sm">
                             {item.variant.quantity}{" "}
                             {item.variant.unit === "pcs" &&

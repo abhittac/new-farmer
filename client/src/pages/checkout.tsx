@@ -744,14 +744,20 @@ export default function Checkout() {
                     </div>
                     <div className="text-right">
                       <p className="text-foreground font-medium">
-                        ₹{(item.product.price * item.quantity).toFixed(2)}
+                        ₹
+                        {(item.variant.discountPrice * item.quantity).toFixed(
+                          2
+                        )}
                       </p>
+                      <span className="text-gray-500 line-through text-sm">
+                        ₹ {(item.variant.price * item.quantity).toFixed(2)}
+                      </span>
                       <p className="text-muted-foreground text-sm">
-                        {item.product.quantity}{" "}
-                        {item.product.unit === "pcs" &&
-                        item.product.quantity === 1
+                        {item.variant.quantity}{" "}
+                        {item.variant.unit === "pcs" &&
+                        item.variant.quantity === 1
                           ? "Piece"
-                          : formatSnakeCase(item.product.unit!)}
+                          : formatSnakeCase(item.variant.unit!)}
                       </p>
                     </div>
                   </div>
