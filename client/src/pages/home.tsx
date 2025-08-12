@@ -34,7 +34,8 @@ import type {
   Category,
 } from "@shared/schema";
 import { Loader2 } from "lucide-react";
-import farmerImage from "../../../public/uploads/products/famer-home.jpg";
+import farmerImage from "../../../public/pic1.jpg";
+import farmerImage2 from "../../../public/pic2.jpg";
 import { formatSnakeCase } from "@/utils/formatSnakeCase";
 const newsletterSchema = z.object({
   name: z.string().optional(),
@@ -202,7 +203,7 @@ export default function Home() {
   return (
     <>
       {/* Modern Hero Section */}
-      <section className="relative h-screen flex items-center overflow-hidden">
+      <section className="relative h-screen flex items-center overflow-hidden pt-0 sm:pt-0 md:pt-0 lg:pt-0 xl:pt-0 pt-[100px]">
         {/* Background image with parallax effect */}
         <div
           className="absolute inset-0 bg-center bg-cover z-0 transform scale-110"
@@ -366,22 +367,26 @@ export default function Home() {
                 foods with authentic flavors and natural goodness that factory
                 farming simply cannot replicate.
               </p>
-              <div className="flex flex-wrap items-center">
-                <div className="mr-4 mb-4">
+              <div className="flex flex-wrap items-center justify-center md:justify-start">
+                <div className="w-full text-center mb-6 md:w-auto md:text-left md:mb-0 md:mr-4">
                   <span className="block text-secondary text-3xl font-bold">
                     24+
                   </span>
                   <span className="text-olive text-sm">Partner Farms</span>
                 </div>
-                <div className="h-10 w-px bg-olive/20 mx-4 hidden md:block"></div>
-                <div className="mx-4 mb-4">
+
+                <div className="hidden md:block h-10 w-px bg-olive/20 mx-4"></div>
+
+                <div className="w-full text-center mb-6 md:w-auto md:text-left md:mb-0 md:mx-4">
                   <span className="block text-secondary text-3xl font-bold">
                     100%
                   </span>
                   <span className="text-olive text-sm">Chemical-Free</span>
                 </div>
-                <div className="h-10 w-px bg-olive/20 mx-4 hidden md:block"></div>
-                <div className="ml-4 mb-4">
+
+                <div className="hidden md:block h-10 w-px bg-olive/20 mx-4"></div>
+
+                <div className="w-full text-center mb-6 md:w-auto md:text-left md:mb-0 md:ml-4">
                   <span className="block text-secondary text-3xl font-bold">
                     8+
                   </span>
@@ -414,7 +419,7 @@ export default function Home() {
             </div>
             <div className="order-1 md:order-2 scroll-animation">
               <img
-                src="https://farm.ws/wp-content/uploads/2020/12/inspection-vegetable-garden-quality-by-farmers.jpg"
+                src={farmerImage2}
                 alt="Traditional farming methods"
                 className="rounded-lg shadow-xl w-full h-auto"
               />

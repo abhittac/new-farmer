@@ -5,7 +5,7 @@ import { useAnimations } from "@/hooks/use-animations";
 import { Truck, Leaf, Package, Clock } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-
+import pic1 from "../../../public/pic3.jpg";
 export default function OurProcess() {
   // Set up animations
   const { setupScrollAnimation } = useAnimations();
@@ -61,7 +61,7 @@ export default function OurProcess() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center scroll-animation">
             <div>
               <img
-                src="https://images.pexels.com/photos/5913391/pexels-photo-5913391.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260"
+                src={pic1}
                 alt="Farmer inspecting crop quality"
                 className="rounded-lg shadow-xl w-full h-auto object-cover aspect-[4/3]"
               />

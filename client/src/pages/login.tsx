@@ -65,7 +65,7 @@ export default function Login() {
     window.scrollTo(0, 0);
   }, []);
   return (
-    <div className="container mx-auto py-10 flex justify-center relative top-14 mb-10">
+    <div className="container mx-auto px-4 md:px-6 py-10 flex justify-center relative top-14 mb-10">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>

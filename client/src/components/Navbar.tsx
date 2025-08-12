@@ -106,6 +106,21 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center space-x-4">
+            {showMobileMenu && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={openCart}
+                className="text-forest hover:text-primary hover:bg-transparent relative"
+              >
+                <ShoppingBasket className="h-5 w-5" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -114,7 +129,6 @@ export default function Navbar() {
             >
               <Search className="h-5 w-5" />
             </Button>
-
             {/* Auth Links - Desktop */}
             <div className="hidden lg:flex items-center space-x-4">
               {isAuthenticated ? (
@@ -163,7 +177,6 @@ export default function Navbar() {
                 </>
               )}
             </div>
-
             <Button
               variant="ghost"
               size="icon"
@@ -171,7 +184,9 @@ export default function Navbar() {
               className="lg:hidden text-forest hover:text-primary hover:bg-transparent"
             >
               {showMobileMenu ? (
-                <X className="h-5 w-5" />
+                <>
+                  <X className="h-5 w-5" />
+                </>
               ) : (
                 <Menu className="h-5 w-5" />
               )}

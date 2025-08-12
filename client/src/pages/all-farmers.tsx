@@ -6,7 +6,7 @@ import FarmerCard from "@/components/FarmerCard";
 import { motion } from "framer-motion";
 import { useAnimations } from "@/hooks/use-animations";
 import { Link } from "wouter";
-
+import pic from "../../../public/pic5.webp";
 export default function AllFarmers() {
   // Get all farmers data
   const { data: farmers = [], isLoading } = useQuery({
@@ -123,9 +123,9 @@ export default function AllFarmers() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className="scroll-animation">
               <img
-                src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080"
+                src={pic}
                 alt="Traditional farming methods"
-                className="rounded-lg shadow-xl w-full h-auto"
+                className="rounded-lg shadow-xl w-full h-[520px] object-cover"
               />
             </div>
             <div className="scroll-animation">

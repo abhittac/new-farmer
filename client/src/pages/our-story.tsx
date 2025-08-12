@@ -6,7 +6,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { type TeamMember } from "@shared/schema";
-import farmerImage from "../../../public/uploads/products/farmer-story.jpg";
+import farmerImage from "../../../public/pic4.jpg";
 export default function OurStory() {
   // Set up animations
   const { setupScrollAnimation } = useAnimations();
