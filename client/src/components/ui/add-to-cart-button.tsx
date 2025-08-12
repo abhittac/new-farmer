@@ -11,6 +11,7 @@ import { useLocation } from "wouter";
 interface AddToCartButtonProps {
   product: Product;
   quantity?: number;
+  selectedVariantId?: number;
   className?: string;
   showIcon?: boolean;
   fullWidth?: boolean;
@@ -21,6 +22,7 @@ interface AddToCartButtonProps {
 export function AddToCartButton({
   product,
   quantity = 1,
+  selectedVariantId,
   className = "",
   showIcon = true,
   fullWidth = false,
@@ -44,7 +46,10 @@ export function AddToCartButton({
     }
     setIsAdding(true);
     try {
-      await addToCart(product.id, selectedQuantity);
+      if (selectedVariantId === undefined) {
+        throw new Error("selectedVariantId is required");
+      }
+      await addToCart(product.id, selectedVariantId, selectedQuantity);
 
       toast({
         title: "Added to basket",

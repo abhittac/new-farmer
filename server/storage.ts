@@ -65,6 +65,7 @@ import { farmerData } from "./farmerData";
 import { db } from "./db";
 import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { desc } from "drizzle-orm";
+import { s } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -93,14 +94,20 @@ export interface IStorage {
   addToCart(
     sessionId: string,
     productId: number,
+    variantId: number,
     quantity: number
   ): Promise<CartWithItems>;
   updateCartItem(
     sessionId: string,
     productId: number,
+    variantId: number,
     quantity: number
   ): Promise<CartWithItems>;
-  removeFromCart(sessionId: string, productId: number): Promise<CartWithItems>;
+  removeFromCart(
+    sessionId: string,
+    productId: number,
+    variantId: number
+  ): Promise<CartWithItems>;
   clearCart(sessionId: string): Promise<void>;
 
   // Testimonials
@@ -469,6 +476,7 @@ export class MemStorage implements IStorage {
   async updateCartItem(
     sessionId: string,
     productId: number,
+    variantId: number,
     quantity: number
   ): Promise<CartWithItems> {
     const cart = this.carts.get(sessionId);
@@ -478,7 +486,10 @@ export class MemStorage implements IStorage {
     }
 
     const cartItems = Array.from(this.cartItems.values()).filter(
-      (item) => item.cartId === cart.id && item.productId === productId
+      (item) =>
+        item.cartId === cart.id &&
+        item.productId === productId &&
+        item.variantId === variantId
     );
 
     if (cartItems.length === 0) {
@@ -488,14 +499,12 @@ export class MemStorage implements IStorage {
     const cartItem = cartItems[0];
 
     if (quantity <= 0) {
-      // Remove item if quantity is 0 or negative
       this.cartItems.delete(cartItem.id);
     } else {
       cartItem.quantity = quantity;
       this.cartItems.set(cartItem.id, cartItem);
     }
 
-    // Update cart's updatedAt timestamp
     cart.updatedAt = new Date();
     this.carts.set(sessionId, cart);
 
@@ -1160,9 +1169,11 @@ export class DatabaseStorage implements IStorage {
   async addToCart(
     sessionId: string,
     productId: number,
+    variantId: number,
     quantity: number
   ): Promise<CartWithItems> {
-    // Get cart or create if not exists
+    console.log("debugger", sessionId, productId, variantId, quantity);
+    // Get or create cart
     let [cart] = await db
       .select()
       .from(carts)
@@ -1172,30 +1183,32 @@ export class DatabaseStorage implements IStorage {
       [cart] = await db.insert(carts).values({ sessionId }).returning();
     }
 
-    // Check if item already exists in cart
+    // Check if this variant already exists in the cart
     const [existingItem] = await db
       .select()
       .from(cartItems)
       .where(
-        and(eq(cartItems.cartId, cart.id), eq(cartItems.productId, productId))
+        and(
+          eq(cartItems.cartId, cart.id),
+          eq(cartItems.productId, productId),
+          eq(cartItems.variantId, variantId)
+        )
       );
 
     if (existingItem) {
-      // Update existing item
       await db
         .update(cartItems)
         .set({ quantity: existingItem.quantity + quantity })
         .where(eq(cartItems.id, existingItem.id));
     } else {
-      // Add new item
       await db.insert(cartItems).values({
         cartId: cart.id,
         productId,
+        variantId,
         quantity,
       });
     }
 
-    // Update cart's updatedAt timestamp
     await db
       .update(carts)
       .set({ updatedAt: new Date() })
@@ -1207,9 +1220,9 @@ export class DatabaseStorage implements IStorage {
   async updateCartItem(
     sessionId: string,
     productId: number,
+    variantId: number,
     quantity: number
   ): Promise<CartWithItems> {
-    // Get cart
     const [cart] = await db
       .select()
       .from(carts)
@@ -1219,12 +1232,15 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Cart not found");
     }
 
-    // Find cart item
     const [cartItem] = await db
       .select()
       .from(cartItems)
       .where(
-        and(eq(cartItems.cartId, cart.id), eq(cartItems.productId, productId))
+        and(
+          eq(cartItems.cartId, cart.id),
+          eq(cartItems.productId, productId),
+          eq(cartItems.variantId, variantId)
+        )
       );
 
     if (!cartItem) {
@@ -1232,17 +1248,14 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (quantity <= 0) {
-      // Remove item if quantity is 0 or negative
       await db.delete(cartItems).where(eq(cartItems.id, cartItem.id));
     } else {
-      // Update quantity
       await db
         .update(cartItems)
         .set({ quantity })
         .where(eq(cartItems.id, cartItem.id));
     }
 
-    // Update cart's updatedAt timestamp
     await db
       .update(carts)
       .set({ updatedAt: new Date() })
@@ -1253,26 +1266,26 @@ export class DatabaseStorage implements IStorage {
 
   async removeFromCart(
     sessionId: string,
-    productId: number
+    productId: number,
+    variantId: number
   ): Promise<CartWithItems> {
-    // Get cart
     const [cart] = await db
       .select()
       .from(carts)
       .where(eq(carts.sessionId, sessionId));
 
-    if (!cart) {
-      throw new Error("Cart not found");
-    }
+    if (!cart) throw new Error("Cart not found");
 
-    // Delete cart item
     await db
       .delete(cartItems)
       .where(
-        and(eq(cartItems.cartId, cart.id), eq(cartItems.productId, productId))
+        and(
+          eq(cartItems.cartId, cart.id),
+          eq(cartItems.productId, productId),
+          eq(cartItems.variantId, variantId)
+        )
       );
 
-    // Update cart's updatedAt timestamp
     await db
       .update(carts)
       .set({ updatedAt: new Date() })
@@ -1301,23 +1314,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async buildCartWithItems(cart: Cart): Promise<CartWithItems> {
-    // Get cart items
+    // Get cart items with product and variant info
     const items = await db
       .select({
         id: cartItems.id,
         cartId: cartItems.cartId,
         productId: cartItems.productId,
+        variantId: cartItems.variantId,
         quantity: cartItems.quantity,
         product: products,
+        variant: productVariants, // variant info
       })
       .from(cartItems)
       .where(eq(cartItems.cartId, cart.id))
-      .innerJoin(products, eq(cartItems.productId, products.id));
+      .innerJoin(products, eq(cartItems.productId, products.id))
+      .innerJoin(productVariants, eq(cartItems.variantId, productVariants.id));
 
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0
-    );
+    // Calculate subtotal using variant price (prefer discountPrice if available)
+    const subtotal = items.reduce((sum, item) => {
+      const price = item.variant.discountPrice ?? item.variant.price;
+      return sum + price * item.quantity;
+    }, 0);
+
     const shipping = subtotal > 0 ? 4.99 : 0;
     const total = subtotal + shipping;
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);

@@ -11,6 +11,13 @@ import { useLocation } from "wouter";
 
 interface CartItem {
   product: Product;
+  variant: {
+    id: number;
+    price: number;
+    discountPrice?: number;
+    unit?: string;
+    quantity: number;
+  };
   quantity: number;
 }
 
@@ -19,9 +26,17 @@ interface CartContextType {
   cartItems: CartItem[];
   openCart: () => void;
   closeCart: () => void;
-  addToCart: (productId: number, quantity: number) => Promise<void>;
-  updateCartItem: (productId: number, quantity: number) => Promise<void>;
-  removeFromCart: (productId: number) => Promise<void>;
+  addToCart: (
+    productId: number,
+    variantId: number,
+    quantity: number
+  ) => Promise<void>;
+  updateCartItem: (
+    productId: number,
+    variantId: number,
+    quantity: number
+  ) => Promise<void>;
+  removeFromCart: (productId: number, variantId: number) => Promise<void>;
   clearCart: () => Promise<void>;
   isLoading: boolean;
   subtotal: number;
@@ -40,7 +55,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [sessionId, setSessionId] = useState("");
   const [location, navigate] = useLocation();
   const subtotal = cartItems.reduce(
-    (total, item) => total + item.product.price * item.quantity,
+    (total, item) =>
+      total +
+      (item.variant.discountPrice ?? item.variant.price) * item.quantity,
     0
   );
 
@@ -100,7 +117,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     document.body.style.overflow = "auto";
   };
 
-  const addToCart = async (productId: number, quantity: number) => {
+  const addToCart = async (
+    productId: number,
+    variantId: number,
+    quantity: number
+  ) => {
     setIsLoading(true);
     try {
       const response = await fetch("/api/cart/items", {
@@ -111,16 +132,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         },
         body: JSON.stringify({
           productId,
+          variantId,
           quantity,
         }),
       });
 
       const data = await response.json();
-      console.log("Added to cart:", data);
-
       if (data && data.items) {
         setCartItems(data.items);
-        // Open the cart when an item is added
         openCart();
       }
     } catch (error) {
@@ -130,21 +149,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateCartItem = async (productId: number, quantity: number) => {
+  const updateCartItem = async (
+    productId: number,
+    variantId: number,
+    quantity: number
+  ) => {
     if (quantity < 1) {
-      return removeFromCart(productId);
+      return removeFromCart(productId, variantId); // also needs variant
     }
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/cart/items/${productId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-session-id": sessionId,
-        },
-        body: JSON.stringify({ quantity }),
-      });
+      const response = await fetch(
+        `/api/cart/items/${productId}/${variantId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": sessionId,
+          },
+          body: JSON.stringify({ quantity }),
+        }
+      );
 
       const data = await response.json();
 
@@ -158,18 +184,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const removeFromCart = async (productId: number) => {
+  const removeFromCart = async (productId: number, variantId: number) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/cart/items/${productId}`, {
-        method: "DELETE",
-        headers: {
-          "x-session-id": sessionId,
-        },
-      });
+      const response = await fetch(
+        `/api/cart/items/${productId}/${variantId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "x-session-id": sessionId,
+          },
+        }
+      );
 
       const data = await response.json();
-
       if (data && data.items) {
         setCartItems(data.items);
       }

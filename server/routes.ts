@@ -161,63 +161,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limitNumber = parseInt(limit);
       const offset = (pageNumber - 1) * limitNumber;
 
-      // Build filters
-      const filters = [eq(products.isDeleted, false)];
-      if (search) filters.push(like(products.name, `%${search}%`));
-      if (category) filters.push(eq(products.category, category));
+      // Build product filters (no isDeleted in products)
+      const productFilters = [];
+      if (search) productFilters.push(like(products.name, `%${search}%`));
+      if (category) productFilters.push(eq(products.category, category));
 
-      // Total count
-      const [{ count }] = await db
-        .select({ count: sql<number>`count(*)` })
+      // Step 1: Get IDs of products that have at least one non-deleted variant
+      // and satisfy product filters (search, category)
+      const productIdsWithVariants = await db
+        .select({ id: products.id })
         .from(products)
-        .where(and(...filters));
-
-      // Sorting
-      const sortColumn = products[sort as keyof typeof products] || products.id;
-      const sortOrder =
-        order.toLowerCase() === "asc" ? asc(sortColumn) : desc(sortColumn);
-
-      // Fetch products
-      const productsList = await db
-        .select()
-        .from(products)
-        .where(and(...filters))
-        .orderBy(sortOrder)
+        .where(
+          and(
+            ...productFilters,
+            // EXISTS clause ensures product has at least one variant NOT deleted
+            sql`EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = products.id AND pv.is_deleted = false)`
+          )
+        )
+        .orderBy(
+          order.toLowerCase() === "asc"
+            ? asc(products[sort as keyof typeof products] || products.id)
+            : desc(products[sort as keyof typeof products] || products.id)
+        )
         .limit(limitNumber)
         .offset(offset);
 
-      const productIds = productsList.map((p) => p.id);
+      const productIds = productIdsWithVariants.map((p) => p.id);
 
-      let variantsMap: Record<number, any[]> = {};
-
-      if (productIds.length > 0) {
-        const variants = await db
-          .select()
-          .from(productVariants)
-          .where(inArray(productVariants.productId, productIds));
-
-        variantsMap = variants.reduce((acc, variant) => {
-          const pid = variant.productId;
-          if (!acc[pid]) acc[pid] = [];
-          acc[pid].push(variant);
-          return acc;
-        }, {} as Record<number, any[]>);
-
-        // Debugging: log if no variants found for a product
-        productsList.forEach((p) => {
-          if (!variantsMap[p.id]) {
-            console.warn(`No variants found for product ID ${p.id}`);
-          }
+      if (productIds.length === 0) {
+        return res.json({
+          products: [],
+          pagination: {
+            total: 0,
+            page: pageNumber,
+            limit: limitNumber,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPrevPage: false,
+          },
         });
       }
 
-      // Final mapping
+      // Step 2: Count total products matching filters and having at least one non-deleted variant
+      const [{ count }] = await db
+        .select({ count: sql<number>`COUNT(DISTINCT products.id)` })
+        .from(products)
+        .leftJoin(productVariants, eq(products.id, productVariants.productId))
+        .where(and(...productFilters, eq(productVariants.isDeleted, false)));
+
+      // Step 3: Fetch product details for those IDs
+      const productsList = await db
+        .select()
+        .from(products)
+        .where(inArray(products.id, productIds));
+
+      // Step 4: Fetch only non-deleted variants for those products
+      const variants = await db
+        .select()
+        .from(productVariants)
+        .where(
+          and(
+            inArray(productVariants.productId, productIds),
+            eq(productVariants.isDeleted, false)
+          )
+        );
+
+      // Map variants by product ID
+      const variantsMap = variants.reduce((acc, variant) => {
+        if (!acc[variant.productId]) acc[variant.productId] = [];
+        acc[variant.productId].push(variant);
+        return acc;
+      }, {} as Record<number, any[]>);
+
+      // Step 5: Attach variants to products
       const enrichedProducts = productsList.map((product) => ({
         ...product,
         variants: variantsMap[product.id] || [],
       }));
 
-      // Response
+      // Step 6: Respond with paginated products + variants
       res.json({
         products: enrichedProducts,
         pagination: {
@@ -418,20 +440,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add item to cart
   app.post(`${apiPrefix}/cart/items`, async (req, res) => {
     try {
-      const { productId, quantity } = req.body;
+      const { productId, variantId, quantity } = req.body;
       const sessionId = (req as any).sessionId;
 
       if (
         typeof productId !== "number" ||
+        typeof variantId !== "number" ||
         typeof quantity !== "number" ||
         quantity <= 0
       ) {
         return res
           .status(400)
-          .json({ message: "Invalid product ID or quantity" });
+          .json({ message: "Invalid product ID, variant ID or quantity" });
       }
 
-      const cart = await storage.addToCart(sessionId, productId, quantity);
+      const cart = await storage.addToCart(
+        sessionId,
+        productId,
+        variantId,
+        quantity
+      );
       res.json(cart);
     } catch (error) {
       res.status(500).json({ message: "Failed to add item to cart" });
@@ -439,19 +467,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update cart item
-  app.put(`${apiPrefix}/cart/items/:productId`, async (req, res) => {
+  app.put(`${apiPrefix}/cart/items/:productId/:variantId`, async (req, res) => {
     try {
       const productId = parseInt(req.params.productId);
+      const variantId = parseInt(req.params.variantId);
       const { quantity } = req.body;
       const sessionId = (req as any).sessionId;
 
-      if (isNaN(productId) || typeof quantity !== "number") {
+      if (
+        isNaN(productId) ||
+        isNaN(variantId) ||
+        typeof quantity !== "number"
+      ) {
         return res
           .status(400)
-          .json({ message: "Invalid product ID or quantity" });
+          .json({ message: "Invalid product/variant ID or quantity" });
       }
 
-      const cart = await storage.updateCartItem(sessionId, productId, quantity);
+      const cart = await storage.updateCartItem(
+        sessionId,
+        productId,
+        variantId,
+        quantity
+      );
       res.json(cart);
     } catch (error) {
       res.status(500).json({ message: "Failed to update cart item" });
@@ -459,21 +497,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Remove item from cart
-  app.delete(`${apiPrefix}/cart/items/:productId`, async (req, res) => {
-    try {
-      const productId = parseInt(req.params.productId);
-      const sessionId = (req as any).sessionId;
+  app.delete(
+    `${apiPrefix}/cart/items/:productId/:variantId`,
+    async (req, res) => {
+      try {
+        const productId = parseInt(req.params.productId);
+        const variantId = parseInt(req.params.variantId);
+        const sessionId = (req as any).sessionId;
 
-      if (isNaN(productId)) {
-        return res.status(400).json({ message: "Invalid product ID" });
+        if (isNaN(productId) || isNaN(variantId)) {
+          return res
+            .status(400)
+            .json({ message: "Invalid product or variant ID" });
+        }
+
+        const cart = await storage.removeFromCart(
+          sessionId,
+          productId,
+          variantId
+        );
+        res.json(cart);
+      } catch (error) {
+        res.status(500).json({ message: "Failed to remove item from cart" });
       }
-
-      const cart = await storage.removeFromCart(sessionId, productId);
-      res.json(cart);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to remove item from cart" });
     }
-  });
+  );
 
   // Clear entire cart
   app.delete(`${apiPrefix}/cart`, async (req, res) => {

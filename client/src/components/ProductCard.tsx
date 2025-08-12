@@ -67,6 +67,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       bg: "bg-lime-100 text-lime-800",
     },
   ];
+
   return (
     <motion.div
       whileHover={{ y: -5 }}
@@ -139,7 +140,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
 
           {/* ⭐ Variant Selector */}
-          {product.variants?.length > 1 && (
+          {product.variants?.length >= 1 && (
             <div className="flex gap-2 flex-wrap mb-3">
               {product.variants.map((variant) => (
                 <button
@@ -187,7 +188,10 @@ export default function ProductCard({ product }: ProductCardProps) {
             </div>
 
             {stockQuantity > 0 ? (
-              <AddToCartButton product={{ ...product, ...selectedVariant }} />
+              <AddToCartButton
+                product={product}
+                selectedVariantId={selectedVariant.id}
+              />
             ) : (
               <p className="text-red-600 font-semibold">Out of Stock</p>
             )}

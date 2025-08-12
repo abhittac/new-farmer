@@ -709,7 +709,7 @@ export default function AllProducts() {
                         className={cn(
                           "w-full justify-start font-normal",
                           !selectedCategory || selectedCategory === "all"
-                            ? "bg-primary/10 text-primary font-medium"
+                            ? "bg-primary/10 text-primary font-medium "
                             : "text-foreground hover:bg-muted"
                         )}
                         onClick={() => handleCategoryChange(null)}

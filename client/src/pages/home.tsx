@@ -295,13 +295,13 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-forest text-xl font-bold">
+                  <div className="flex justify-center items-center">
+                    {/* <span className="text-forest text-xl font-bold">
                       ₹{product.price}/{product.quantity}{" "}
                       {product.unit === "pcs" && product.quantity === 1
                         ? "Piece"
                         : formatSnakeCase(product.unit!)}
-                    </span>
+                    </span> */}
                     <Link
                       to={`/products/${product.id}`}
                       className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md font-semibold transition duration-300"
