@@ -43,57 +43,48 @@ app.use((req, res, next) => {
   next();
 });
 // Configure CORS for Replit environment
-const allowedOrigins = [
-  "http://localhost:5000",
-  "http://0.0.0.0:5000",
-  "https://new-farmer-e5cl.onrender.com",
-];
-
-// Add Replit domain patterns
-const isReplitDomain = (origin: string) => {
-  return (
-    origin &&
-    (origin.includes(".replit.dev") ||
-      origin.includes(".repl.co") ||
-      origin.includes(".replit.app") ||
-      origin.includes("replit.com"))
-  );
-};
-
 app.use(
   cors({
     origin: function (
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void
     ) {
-      // Allow requests with no origin (mobile apps, curl, etc.)
+      // Allow requests with no origin (same-origin requests, mobile apps, curl, etc.)
       if (!origin) {
         callback(null, true);
         return;
       }
 
-      // Allow Replit domains
-      if (isReplitDomain(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      // Allow explicitly configured origins
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      // For development, allow localhost with any port
+      // Allow all Replit domains
       if (
-        process.env.NODE_ENV === "development" &&
-        origin.startsWith("http://localhost:")
+        origin.includes(".replit.dev") ||
+        origin.includes(".repl.co") ||
+        origin.includes(".replit.app") ||
+        origin.includes("replit.com")
       ) {
         callback(null, true);
         return;
       }
 
-      callback(new Error("Not allowed by CORS"));
+      // Allow localhost for development
+      if (origin.startsWith("http://localhost:") || origin.startsWith("http://0.0.0.0:")) {
+        callback(null, true);
+        return;
+      }
+
+      // Allow render.com deployment
+      if (origin.includes("onrender.com")) {
+        callback(null, true);
+        return;
+      }
+
+      // For development mode, be more permissive
+      if (process.env.NODE_ENV === "development") {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, false);
     },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
