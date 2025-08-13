@@ -23,6 +23,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 import { Mail, User, Calendar, MessageSquare, Eye } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import MainLoader from "@/utils/MainLoader";
 
 interface ContactMessage {
   id: number;
@@ -110,8 +111,7 @@ function AdminMessages() {
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading messages...</p>
+            <MainLoader />
           </div>
         </div>
       </div>
@@ -137,7 +137,7 @@ function AdminMessages() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Contact Messages</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-2">
             Manage customer inquiries and support requests
           </p>
         </div>

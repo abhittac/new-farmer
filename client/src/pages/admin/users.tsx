@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import MainLoader from "@/utils/MainLoader";
 
 // User interface based on API response
 interface UserData {
@@ -307,7 +308,7 @@ export default function AdminUsers() {
           <CardContent>
             {isLoading ? (
               <div className="flex justify-center items-center py-8">
-                <div className="text-muted-foreground">Loading users...</div>
+                <MainLoader />
               </div>
             ) : error ? (
               <div className="flex justify-center items-center py-8">
@@ -524,7 +525,9 @@ export default function AdminUsers() {
               </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter
+            style={{ display: "flex", justifyContent: "space-between" }}
+          >
             <Button
               variant="outline"
               onClick={() => setIsViewDialogOpen(false)}
@@ -556,7 +559,9 @@ export default function AdminUsers() {
                 : "Are you sure you want to unblock this user? They will regain full access to their account."}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter
+            style={{ display: "flex", justifyContent: "space-between" }}
+          >
             <Button
               variant="outline"
               onClick={() => setIsBlockDialogOpen(false)}

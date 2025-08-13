@@ -65,6 +65,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 import * as z from "zod";
 import ImageUpload from "@/components/admin/ImageUpload";
+import MainLoader from "@/utils/MainLoader";
 
 // Enhanced Product type with all fields
 interface ProductVariant {
@@ -750,7 +751,7 @@ export default function EnhancedAdminProducts() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <MainLoader />
             </div>
           ) : error ? (
             <div className="bg-red-50 p-4 rounded-md text-red-500">{error}</div>
@@ -1318,7 +1319,7 @@ export default function EnhancedAdminProducts() {
                         />
                       </div>
 
-                      <div className="flex justify-end">
+                      <div className="flex justify-between">
                         <Button
                           type="button"
                           variant="destructive"
@@ -1639,7 +1640,9 @@ export default function EnhancedAdminProducts() {
                 </TabsContent>
               </Tabs>
 
-              <DialogFooter>
+              <DialogFooter
+                style={{ display: "flex", justifyContent: "space-between" }}
+              >
                 <Button
                   type="button"
                   variant="outline"
@@ -1730,7 +1733,9 @@ export default function EnhancedAdminProducts() {
               action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter
+            style={{ display: "flex", justifyContent: "space-between" }}
+          >
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}

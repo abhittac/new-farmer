@@ -2110,12 +2110,19 @@ export class DatabaseStorage implements IStorage {
     return settings;
   }
 
+  // storage.ts
   async upsertSiteSetting(setting: InsertSiteSetting): Promise<SiteSetting> {
+    if (!setting.key) {
+      throw new Error("Setting key is required");
+    }
+
+    const now = new Date();
+
     const [upsertedSetting] = await db
       .insert(siteSettings)
       .values({
         ...setting,
-        updatedAt: new Date(),
+        updatedAt: now,
       })
       .onConflictDoUpdate({
         target: siteSettings.key,
@@ -2123,7 +2130,7 @@ export class DatabaseStorage implements IStorage {
           value: setting.value,
           type: setting.type,
           description: setting.description,
-          updatedAt: new Date(),
+          updatedAt: now,
         },
       })
       .returning();

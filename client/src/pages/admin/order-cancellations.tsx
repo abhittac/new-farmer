@@ -15,6 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Clock, CheckCircle, XCircle, Eye, MessageSquare } from "lucide-react";
+import MainLoader from "@/utils/MainLoader";
 
 interface CancellationRequest {
   id: number;
@@ -128,7 +129,7 @@ export default function OrderCancellations() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Order Cancellation Requests</h1>
         </div>
-        <div className="text-center py-8">Loading cancellation requests...</div>
+        <MainLoader />
       </div>
     );
   }

@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AdminLayout from "@/components/admin/AdminLayout";
+import MainLoader from "@/utils/MainLoader";
 
 interface Category {
   id: number;
@@ -320,11 +321,15 @@ export default function CategoryManagement() {
   }, []);
 
   if (isLoading) {
-    return <div className="text-center py-10">Loading...</div>;
+    return (
+      <div className="text-center py-10">
+        <MainLoader />
+      </div>
+    );
   }
 
   return (
-    <div className="container py-8">
+    <div className="container ">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Category Management</h1>
         <Button onClick={() => setShowCreateDialog(true)}>

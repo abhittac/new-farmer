@@ -54,6 +54,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import placeholderImage from "../../../../public/uploads/products/no-profile.jpg";
+import MainLoader from "@/utils/MainLoader";
+import { c } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
 // Create a comprehensive validation schema for the farmer form
 const farmerFormSchema = insertFarmerSchema.extend({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -288,6 +290,7 @@ export default function FarmerManagement() {
       active: true,
     },
   });
+  const { handleSubmit } = editForm;
 
   // Handle add form submission
   const onAddSubmit = (data: FarmerFormValues) => {
@@ -296,11 +299,13 @@ export default function FarmerManagement() {
 
   // Handle edit form submission
   const onEditSubmit = (data: FarmerFormValues) => {
+    console.log("debugger", data);
     if (currentFarmer) {
       updateFarmerMutation.mutate({ id: currentFarmer.id, data });
     }
   };
 
+  const handleEditSubmit = handleSubmit(onEditSubmit);
   // Open edit dialog and set form values
   const handleEditClick = (farmer: Farmer) => {
     setCurrentFarmer(farmer);
@@ -353,7 +358,7 @@ export default function FarmerManagement() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 className="text-2xl font-bold">Farmer Management</h2>
+        {/* <h2 className="text-2xl font-bold">Farmer Management</h2> */}
 
         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <div className="relative flex-grow">
@@ -370,7 +375,23 @@ export default function FarmerManagement() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => refetch()}
+              onClick={() => {
+                refetch()
+                  .then(() => {
+                    toast({
+                      title: "Farmer table refreshed successfully",
+
+                      variant: "default",
+                    });
+                  })
+                  .catch((error) => {
+                    toast({
+                      title: error,
+
+                      variant: "destructive",
+                    });
+                  });
+              }}
               title="Refresh"
             >
               <RefreshCw className="h-4 w-4" />
@@ -810,7 +831,12 @@ export default function FarmerManagement() {
                       </div>
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
                       <Button
                         type="button"
                         variant="outline"
@@ -852,10 +878,7 @@ export default function FarmerManagement() {
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-10">
                   <div className="flex justify-center">
-                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                  <div className="mt-2 text-muted-foreground">
-                    Loading farmers...
+                    <MainLoader />
                   </div>
                 </TableCell>
               </TableRow>
@@ -910,7 +933,7 @@ export default function FarmerManagement() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-between gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -945,10 +968,7 @@ export default function FarmerManagement() {
           </DialogHeader>
 
           <Form {...editForm}>
-            <form
-              onSubmit={editForm.handleSubmit(onEditSubmit)}
-              className="space-y-4"
-            >
+            <form onSubmit={handleEditSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={editForm.control}
@@ -1040,7 +1060,9 @@ export default function FarmerManagement() {
                 )}
               />
 
-              <DialogFooter>
+              <DialogFooter
+                style={{ display: "flex", justifyContent: "space-between" }}
+              >
                 <Button
                   type="button"
                   variant="outline"
@@ -1069,7 +1091,9 @@ export default function FarmerManagement() {
               cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter
+            style={{ display: "flex", justifyContent: "space-between" }}
+          >
             <Button
               type="button"
               variant="outline"

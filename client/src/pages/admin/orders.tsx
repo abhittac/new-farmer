@@ -56,6 +56,7 @@ import { Link } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import placeholderImage from "../../../../public/uploads/products/No-Image.png";
 import { formatSnakeCase } from "@/utils/formatSnakeCase";
+import MainLoader from "@/utils/MainLoader";
 // Order type definition for API response
 interface OrderData {
   id: number;
@@ -654,7 +655,7 @@ export default function AdminOrders() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <MainLoader />
             </div>
           ) : error ? (
             <div className="bg-red-50 p-4 rounded-md text-red-500">{error}</div>
@@ -1054,7 +1055,9 @@ export default function AdminOrders() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter
+            style={{ display: "flex", justifyContent: "space-between" }}
+          >
             <Button variant="outline" onClick={handleTrackingIdCancel}>
               Cancel
             </Button>

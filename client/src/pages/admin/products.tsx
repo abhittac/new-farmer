@@ -563,7 +563,7 @@ export default function AdminProducts() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-end space-x-2 py-4">
+                  <div className="flex items-center justify-between space-x-2 py-4">
                     <Button
                       variant="outline"
                       size="sm"
@@ -601,7 +601,9 @@ export default function AdminProducts() {
               action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter
+            style={{ display: "flex", justifyContent: "space-between" }}
+          >
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}

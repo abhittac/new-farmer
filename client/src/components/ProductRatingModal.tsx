@@ -144,7 +144,9 @@ export default function ProductRatingModal({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter
+          style={{ display: "flex", justifyContent: "space-between" }}
+        >
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

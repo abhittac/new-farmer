@@ -2428,13 +2428,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // route
   app.post("/api/admin/site-settings", async (req, res) => {
     try {
-      const setting = await storage.upsertSiteSetting(req.body);
-      res.json(setting);
+      const settings = req.body;
+
+      if (!Array.isArray(settings)) {
+        return res.status(400).json({
+          success: false,
+          message: "Request body must be an array of settings",
+        });
+      }
+
+      const now = new Date();
+      const results = [];
+
+      for (const s of settings) {
+        if (!s.key) {
+          return res.status(400).json({
+            success: false,
+            message: "Setting key is required for all items",
+          });
+        }
+
+        const updated = await storage.upsertSiteSetting({
+          key: s.key,
+          value: s.value,
+          type: s.type,
+          description: s.description,
+        });
+
+        results.push(updated);
+      }
+
+      res.json({ success: true, data: results });
     } catch (error) {
-      console.error("Site setting update error:", error);
-      res.status(500).json({ message: "Failed to update site setting" });
+      console.error("Site settings update error:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to update site settings",
+      });
     }
   });
 

@@ -51,6 +51,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import AdminLayout from "@/components/admin/AdminLayout";
+import MainLoader from "@/utils/MainLoader";
 
 // Form validation schema
 const discountFormSchema = z.object({
@@ -320,7 +321,7 @@ export default function AdminDiscounts() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading discounts...</div>
+        <MainLoader />
       </div>
     );
   }
@@ -601,7 +602,7 @@ export default function AdminDiscounts() {
                   />
                 </div>
 
-                <div className="flex justify-end space-x-2 pt-4">
+                <div className="flex justify-between space-x-2 pt-4">
                   <Button
                     type="button"
                     variant="outline"
@@ -965,7 +966,7 @@ export default function AdminDiscounts() {
                   )}
                 />
               </div>
-              <div className="flex justify-end space-x-2 pt-4">
+              <div className="flex justify-between space-x-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"

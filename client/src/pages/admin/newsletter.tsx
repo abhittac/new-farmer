@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import AdminLayout from "@/components/admin/AdminLayout";
 import type { NewsletterSubscription } from "@shared/schema";
+import MainLoader from "@/utils/MainLoader";
 
 interface NewsletterSubscriptionsResponse {
   subscriptions: NewsletterSubscription[];
@@ -65,10 +66,7 @@ export default function NewsletterSubscriptionsPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Newsletter Subscriptions</h1>
         </div>
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
-        </div>
+        <MainLoader />
       </div>
     );
   }

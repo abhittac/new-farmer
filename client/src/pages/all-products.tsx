@@ -539,7 +539,7 @@ export default function AllProducts() {
         </div>
 
         {/* Mobile filter toggle */}
-        <div className="lg:hidden flex justify-end mb-6">
+        <div className="lg:hidden flex justify-between mb-6">
           <Button
             variant="outline"
             className="flex items-center gap-2"

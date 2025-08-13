@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Store, Globe } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import MainLoader from "@/utils/MainLoader";
 
 interface SiteSetting {
   id: number;
@@ -85,6 +86,8 @@ export default function AdminSettings() {
   const { data: settings = [], isLoading } = useQuery({
     queryKey: ["/api/admin/site-settings"],
     queryFn: () => apiRequest("/api/admin/site-settings"),
+    refetchOnMount: "always", // <— ensures fresh fetch when navigating back
+    staleTime: 0, // <— never consider it fresh for long
   });
 
   // Transform settings array to object for form
@@ -110,15 +113,17 @@ export default function AdminSettings() {
   }, [settingsMap, form]);
 
   const updateSettingMutation = useMutation({
-    mutationFn: (setting: {
-      key: string;
-      value: string;
-      type: string;
-      description?: string;
-    }) =>
+    mutationFn: (
+      settings: Array<{
+        key: string;
+        value: string;
+        type: string;
+        description?: string;
+      }>
+    ) =>
       apiRequest("/api/admin/site-settings", {
         method: "POST",
-        body: JSON.stringify(setting),
+        body: JSON.stringify(settings), // Send all at once
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/site-settings"] });
@@ -135,13 +140,12 @@ export default function AdminSettings() {
         description: getSettingDescription(key),
       }));
 
-      await Promise.all(
-        updates.map((setting) => updateSettingMutation.mutateAsync(setting))
-      );
+      await updateSettingMutation.mutateAsync(updates);
 
       toast({
         title: "Settings Updated",
         description: "Store settings have been saved successfully.",
+        variant: "default",
       });
     } catch (error) {
       toast({
@@ -175,11 +179,7 @@ export default function AdminSettings() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <MainLoader />;
   }
 
   return (
@@ -449,7 +449,7 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
+        <div className="flex justify-between">
           <Button
             type="submit"
             disabled={updateSettingMutation.isPending}

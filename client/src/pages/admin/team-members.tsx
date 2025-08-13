@@ -29,6 +29,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   insertTeamMemberSchema,
   type TeamMember,
@@ -38,6 +39,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Plus, Edit, Trash2, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/admin/AdminLayout";
+import MainLoader from "@/utils/MainLoader";
 
 function TeamMembersAdmin() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -48,7 +50,20 @@ function TeamMembersAdmin() {
   const { data: teamMembers, isLoading } = useQuery<TeamMember[]>({
     queryKey: ["/api/admin/team-members"],
   });
-
+  const insertTeamMemberSchema = z.object({
+    name: z
+      .string()
+      .min(2, { message: "Name must be at least 2 characters long" })
+      .max(50, { message: "Name must not exceed 50 characters" }),
+    jobTitle: z
+      .string()
+      .min(2, { message: "Job title must be at least 2 characters long" })
+      .max(50, { message: "Job title must not exceed 50 characters" }),
+    description: z.string().optional(),
+    profileImageUrl: z.string().url({ message: "Must be a valid URL" }),
+    displayOrder: z.number().min(0),
+    isActive: z.boolean(),
+  });
   const createForm = useForm<InsertTeamMember>({
     resolver: zodResolver(insertTeamMemberSchema),
     defaultValues: {
@@ -189,7 +204,9 @@ function TeamMembersAdmin() {
           <Users className="h-6 w-6" />
           <h1 className="text-3xl font-bold">Team Member Management</h1>
         </div>
-        <div className="text-center py-8">Loading team members...</div>
+        <div className="text-center py-8">
+          <MainLoader />
+        </div>
       </div>
     );
   }
@@ -316,7 +333,7 @@ function TeamMembersAdmin() {
                     </FormItem>
                   )}
                 />
-                <div className="flex justify-end space-x-2">
+                <div className="flex justify-between space-x-2">
                   <Button
                     type="button"
                     variant="outline"
@@ -368,7 +385,7 @@ function TeamMembersAdmin() {
               <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
                 {member.description}
               </p>
-              <div className="flex justify-end space-x-2">
+              <div className="flex justify-between space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -501,7 +518,7 @@ function TeamMembersAdmin() {
                   </FormItem>
                 )}
               />
-              <div className="flex justify-end space-x-2">
+              <div className="flex justify-between space-x-2">
                 <Button
                   type="button"
                   variant="outline"
