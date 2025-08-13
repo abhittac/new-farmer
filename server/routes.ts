@@ -49,6 +49,7 @@ import {
   isNotNull,
   like,
   lte,
+  ilike,
 } from "drizzle-orm";
 import adminRouter from "./admin";
 import imageRouter from "./imageRoutes";
@@ -138,52 +139,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register image upload routes
   app.use(`${apiPrefix}/images`, imageRouter);
 
-  // Get all products with pagination (user-facing)
   app.get(`${apiPrefix}/products`, async (req, res) => {
     try {
-      // Disable caching
       res.set({
         "Cache-Control": "no-cache, no-store, must-revalidate",
         Pragma: "no-cache",
         Expires: "0",
       });
 
-      // Parse query parameters
+      // Query params
       const {
         page = "1",
         limit = "10",
-        sort = "id",
-        order = "asc",
+        sortBy = "id", // "price" or product field
+        sortOrder = "asc",
         search = "",
         category = "",
+        minPrice = "",
+        maxPrice = "",
       } = req.query as Record<string, string>;
 
       const pageNumber = parseInt(page);
       const limitNumber = parseInt(limit);
       const offset = (pageNumber - 1) * limitNumber;
-
-      // Build product filters (no isDeleted in products)
+      const minPriceNum = minPrice ? parseFloat(minPrice) : null;
+      const maxPriceNum = maxPrice ? parseFloat(maxPrice) : null;
+      const sortField = ["id", "name", "price"].includes(sortBy)
+        ? sortBy
+        : "id";
+      const orderDirection = sortOrder.toLowerCase() === "asc" ? "asc" : "desc";
+      let orderExpr;
+      if (sortField === "price") {
+        orderExpr =
+          orderDirection === "asc"
+            ? sql`(SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = products.id AND pv.is_deleted = false) ASC`
+            : sql`(SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = products.id AND pv.is_deleted = false) DESC`;
+      } else if (sortField === "name") {
+        orderExpr =
+          orderDirection === "asc" ? asc(products.name) : desc(products.name);
+      } else {
+        orderExpr =
+          orderDirection === "asc" ? asc(products.id) : desc(products.id);
+      }
+      // Product filters
       const productFilters = [];
-      if (search) productFilters.push(like(products.name, `%${search}%`));
+      if (search) productFilters.push(ilike(products.name, `%${search}%`));
       if (category) productFilters.push(eq(products.category, category));
 
-      // Step 1: Get IDs of products that have at least one non-deleted variant
-      // and satisfy product filters (search, category)
+      // Step 1: Get IDs of products that match filters & variant constraints
       const productIdsWithVariants = await db
         .select({ id: products.id })
         .from(products)
         .where(
           and(
             ...productFilters,
-            // EXISTS clause ensures product has at least one variant NOT deleted
-            sql`EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = products.id AND pv.is_deleted = false)`
+            sql`EXISTS (
+            SELECT 1 FROM product_variants pv
+            WHERE pv.product_id = products.id
+              AND pv.is_deleted = false
+              ${
+                minPriceNum !== null
+                  ? sql`AND pv.price >= ${minPriceNum}`
+                  : sql``
+              }
+              ${
+                maxPriceNum !== null
+                  ? sql`AND pv.price <= ${maxPriceNum}`
+                  : sql``
+              }
+          )`
           )
         )
-        .orderBy(
-          order.toLowerCase() === "asc"
-            ? asc(products[sort as keyof typeof products] || products.id)
-            : desc(products[sort as keyof typeof products] || products.id)
-        )
+        .orderBy(orderExpr)
         .limit(limitNumber)
         .offset(offset);
 
@@ -203,20 +230,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Step 2: Count total products matching filters and having at least one non-deleted variant
+      // Step 2: Count total products matching filters
       const [{ count }] = await db
         .select({ count: sql<number>`COUNT(DISTINCT products.id)` })
         .from(products)
         .leftJoin(productVariants, eq(products.id, productVariants.productId))
-        .where(and(...productFilters, eq(productVariants.isDeleted, false)));
+        .where(
+          and(
+            ...productFilters,
+            eq(productVariants.isDeleted, false),
+            minPriceNum !== null
+              ? sql`${productVariants.price} >= ${minPriceNum}`
+              : sql`TRUE`,
+            maxPriceNum !== null
+              ? sql`${productVariants.price} <= ${maxPriceNum}`
+              : sql`TRUE`
+          )
+        );
 
-      // Step 3: Fetch product details for those IDs
+      // Step 3: Fetch product details
       const productsList = await db
         .select()
         .from(products)
-        .where(inArray(products.id, productIds));
+        .where(inArray(products.id, productIds))
+        .orderBy(orderExpr);
 
-      // Step 4: Fetch only non-deleted variants for those products
+      // Step 4: Fetch variants
       const variants = await db
         .select()
         .from(productVariants)
@@ -227,21 +266,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         );
 
-      // Map variants by product ID
+      // Step 5: Map variants to products
       const variantsMap = variants.reduce((acc, variant) => {
         if (!acc[variant.productId]) acc[variant.productId] = [];
         acc[variant.productId].push(variant);
         return acc;
       }, {} as Record<number, any[]>);
 
-      // Step 5: Attach variants to products
       const enrichedProducts = productsList.map((product) => ({
         ...product,
         variants: variantsMap[product.id] || [],
       }));
 
-      // Step 6: Respond with paginated products + variants
+      // Step 6: Respond
       res.json({
+        success: true,
         products: enrichedProducts,
         pagination: {
           total: Number(count),

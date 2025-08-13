@@ -21,6 +21,7 @@ import { cn, debounce } from "@/lib/utils";
 import { useSearchParams as queryfinder } from "react-router-dom";
 import { useCategory } from "@/hooks/store";
 import { useAuth } from "@/context/AuthContext";
+import MainLoader from "@/utils/MainLoader";
 
 // Custom hook for URL search params with navigation
 const useSearchParams = () => {
@@ -192,88 +193,6 @@ export default function AllProducts() {
     }
   }, [searchParam]);
 
-  // Sync all state with URL parameters when they change
-  // useEffect(() => {
-  //   let hasChanges = false;
-
-  //   // Update category if different from URL
-  //   if ((categoryParam || null) !== selectedCategory) {
-  //     setSelectedCategory(categoryParam || null);
-  //     hasChanges = true;
-
-  //     // If category changed, fetch its subcategories
-  //     if (categoryParam) {
-  //       const category = mainCategories.find(
-  //         (cat) => cat.name === categoryParam
-  //       );
-  //       if (category) {
-  //         fetchSubcategories(category.id);
-  //       }
-  //     } else {
-  //       setSubcategories([]);
-  //       setSelectedSubcategory(null);
-  //     }
-  //   }
-
-  //   // Update subcategory if different from URL
-  //   if ((subcategoryParam || null) !== selectedSubcategory) {
-  //     setSelectedSubcategory(subcategoryParam || null);
-  //     hasChanges = true;
-  //   }
-
-  //   // Update search query if different from URL
-  //   if ((searchParam || "") !== searchQuery) {
-  //     setSearchQuery(searchParam || "");
-  //     hasChanges = true;
-
-  //     // Update search input field
-  //     const searchInput = document.getElementById(
-  //       "product-search"
-  //     ) as HTMLInputElement;
-  //     if (searchInput) {
-  //       searchInput.value = searchParam || "";
-  //     }
-  //   }
-
-  //   // Update price range from URL
-  //   const newMinPrice = minPriceParam ? parseFloat(minPriceParam) : 0;
-  //   const newMaxPrice = maxPriceParam ? parseFloat(maxPriceParam) : 1000;
-  //   if (newMinPrice !== priceRange[0] || newMaxPrice !== priceRange[1]) {
-  //     setPriceRange([newMinPrice, newMaxPrice]);
-  //     hasChanges = true;
-  //   }
-
-  //   // Update sort options from URL
-  //   const newSortBy = sortByParam || "id";
-  //   const newSortOrder = sortOrderParam || "desc";
-  //   if (newSortBy !== sortBy || newSortOrder !== sortOrder) {
-  //     setSortBy(newSortBy);
-  //     setSortOrder(newSortOrder);
-  //     hasChanges = true;
-  //   }
-
-  //   // Update page from URL
-  //   const newPage = pageParam ? parseInt(pageParam) : 1;
-  //   if (newPage !== currentPage) {
-  //     setCurrentPage(newPage);
-  //   }
-
-  //   // Scroll to top when filters change from URL (like footer clicks)
-  //   if (hasChanges) {
-  //     window.scrollTo(0, 0);
-  //   }
-  // }, [
-  //   categoryParam,
-  //   subcategoryParam,
-  //   searchParam,
-  //   minPriceParam,
-  //   maxPriceParam,
-  //   sortByParam,
-  //   sortOrderParam,
-  //   pageParam,
-  //   mainCategories,
-
-  // ]);
   useEffect(() => {
     const effectiveCategory = categoryParam || category || null;
 
@@ -434,25 +353,6 @@ export default function AllProducts() {
     });
   };
 
-  // Handle price range change
-  // const handlePriceRangeChange = (newRange: [number, number]) => {
-  //   window.scrollTo(0, 0);
-
-  //   setPriceRange(newRange);
-  //   setCurrentPage(1);
-
-  //   // Update URL with all current filters
-  //   updateURL({
-  //     category: selectedCategory,
-  //     subcategory: selectedSubcategory,
-  //     search: searchQuery || null,
-  //     minPrice: newRange[0] > 0 ? newRange[0].toString() : null,
-  //     maxPrice: newRange[1] < 1000 ? newRange[1].toString() : null,
-  //     page: "1",
-  //     sortBy: sortBy,
-  //     sortOrder: sortOrder,
-  //   });
-  // };
   // State for temporary values during slider interaction
   const [tempRange, setTempRange] = useState<[number, number]>(priceRange);
   const [isDragging, setIsDragging] = useState(false);
@@ -570,6 +470,26 @@ export default function AllProducts() {
   const debouncedSearchChange = debounce((value: string) => {
     handleSearchChange(value);
   }, 300);
+  /**
+   * A simple grid of skeleton cards to display during loading.
+   * @param {Object} props
+   * @prop {number} count - The number of skeleton cards to render.
+   * @returns {ReactElement} The skeleton card grid.
+   */
+  /**
+   * A simple grid of skeleton cards to display during loading.
+   * @param {{ count: number }} props
+   * @returns {ReactElement} The skeleton card grid.
+   */
+  function SkeletonGrid({ count }: { count: number }) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {[...Array(count)].map((_, i) => (
+          <div key={i} className="h-80 bg-muted rounded animate-pulse"></div>
+        ))}
+      </div>
+    );
+  }
 
   // Reset filters
   const resetFilters = () => {
@@ -603,21 +523,6 @@ export default function AllProducts() {
     ) as HTMLInputElement;
     if (searchInput) searchInput.value = "";
   };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-32 flex justify-center">
-        <div className="animate-pulse space-y-8 w-full">
-          <div className="h-10 bg-muted rounded w-1/4 mx-auto"></div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="h-80 bg-muted rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-background pt-32 pb-16 min-h-screen">
@@ -863,13 +768,14 @@ export default function AllProducts() {
                 </p>
               </div>
             </div>
-
             {error ? (
               <div className="text-center py-12">
                 <p className="text-destructive">
                   Failed to load products. Please try again.
                 </p>
               </div>
+            ) : isLoading ? (
+              <MainLoader />
             ) : allProducts.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">
@@ -885,7 +791,7 @@ export default function AllProducts() {
               </div>
             ) : (
               <>
-                {/* Products Grid */}
+                {/* Actual Products Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                   {allProducts.map((product: Product) => (
                     <div key={product.id} className="scroll-animation">

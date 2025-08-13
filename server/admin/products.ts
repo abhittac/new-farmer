@@ -109,7 +109,6 @@ export const getAllInventoryProducts = async (req: Request, res: Response) => {
 
     // Response
     res.json({
-      debuger: true,
       products: flattened,
       pagination: {
         total: Number(count),
@@ -190,7 +189,6 @@ export const getAllProducts = async (req: Request, res: Response) => {
 
     if (productIds.length === 0) {
       return res.json({
-        debuger: true,
         products: [],
         pagination: {
           total: 0,
@@ -244,7 +242,6 @@ export const getAllProducts = async (req: Request, res: Response) => {
 
     // Response
     res.json({
-      debuger: true,
       products: enrichedProducts,
       pagination: {
         total: Number(count),
