@@ -23,14 +23,6 @@ export default function AdminFarmersPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Farmer Management</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage farmer profiles that appear on the website. Create, update, or
-          remove farmers from the platform.
-        </p>
-      </div>
-
       <FarmerManagement />
     </div>
   );

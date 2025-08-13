@@ -358,7 +358,14 @@ export default function FarmerManagement() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        {/* <h2 className="text-2xl font-bold">Farmer Management</h2> */}
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Farmer Management
+          </h2>
+          <p className="text-muted-foreground">
+            Manage your registered farmers
+          </p>
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <div className="relative flex-grow">
