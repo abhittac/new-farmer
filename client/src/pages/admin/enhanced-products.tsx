@@ -118,7 +118,7 @@ const variantSchema = z.object({
   quantity: z.number().min(0.01, "Quantity must be greater than 0"),
   unit: z.string().min(1, "Please select a unit"),
   stockQuantity: z.number().int().min(0, "Stock quantity must be 0 or greater"),
-  sku: z.string().min(1, "SKU is required").optional(),
+  sku: z.string().min(1, "SKU is required"),
 });
 const enhancedProductFormSchema = z.object({
   // Basic Information
@@ -203,14 +203,16 @@ export default function EnhancedAdminProducts() {
       name: "",
       shortDescription: "",
       description: "",
-      price: 0,
-      discountPrice: undefined,
       category: "",
       subcategory: "",
-      unit: "",
-      quantity: 0,
-      sku: "",
-      stockQuantity: 0,
+      variants: [{
+        price: 0,
+        discountPrice: null,
+        quantity: 0,
+        unit: "",
+        stockQuantity: 0,
+        sku: "",
+      }],
       imageUrl: "",
       imageUrls: "",
       videoUrl: "",
@@ -385,8 +387,9 @@ export default function EnhancedAdminProducts() {
     (product) =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.sku &&
-        product.sku.toLowerCase().includes(searchTerm.toLowerCase()))
+      product.variants?.some((variant) =>
+        variant.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
   );
 
   // Handle page change
@@ -490,7 +493,6 @@ export default function EnhancedAdminProducts() {
             unit: v.unit,
             stockQuantity: v.stockQuantity,
             sku: v.sku ?? "",
-            image: v.image ?? undefined,
           }))
         : [],
 
@@ -512,7 +514,7 @@ export default function EnhancedAdminProducts() {
     });
 
     // Set existing images for the upload components
-    setPrimaryImage(product.imageUrl);
+    setPrimaryImage(product.imageUrl || "");
     setUploadedImages(product.imageUrls || []);
 
     setProductToEdit(product);
@@ -791,9 +793,9 @@ export default function EnhancedAdminProducts() {
                                   e.currentTarget.src = placeholderImage;
                                 }}
                               />
-                              {product.imageUrls?.length > 0 && (
+                              {product.imageUrls && product.imageUrls.length > 0 && (
                                 <div className="absolute -bottom-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                  +{product.imageUrls.length}
+                                  +{product.imageUrls?.length}
                                 </div>
                               )}
                             </div>
@@ -804,9 +806,10 @@ export default function EnhancedAdminProducts() {
                               <p className="text-sm text-muted-foreground line-clamp-2">
                                 {product.shortDescription}
                               </p>
-                              {product.sku && (
+                              {product.variants && product.variants.length > 0 && product.variants[0].sku && (
                                 <p className="text-xs text-muted-foreground">
-                                  SKU: {product.sku}
+                                  SKU: {product.variants[0].sku}
+                                  {product.variants.length > 1 && ` (+${product.variants.length - 1} more)`}
                                 </p>
                               )}
                             </div>
@@ -990,7 +993,7 @@ export default function EnhancedAdminProducts() {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Product Name</FormLabel>
+                          <FormLabel>Product Name <span className="text-red-500">*</span></FormLabel>
                           <FormControl>
                             <Input
                               placeholder="e.g., Premium Tea Leaves"
@@ -1007,7 +1010,7 @@ export default function EnhancedAdminProducts() {
                       name="category"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Category</FormLabel>
+                          <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
                           <Select
                             onValueChange={(value) => {
                               field.onChange(value);
@@ -1084,7 +1087,7 @@ export default function EnhancedAdminProducts() {
                     name="shortDescription"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Short Description</FormLabel>
+                        <FormLabel>Short Description <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Input
                             placeholder="Brief product description for listings"
@@ -1105,7 +1108,7 @@ export default function EnhancedAdminProducts() {
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Full Description</FormLabel>
+                        <FormLabel>Full Description <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Detailed product description..."
@@ -1126,7 +1129,7 @@ export default function EnhancedAdminProducts() {
                     name="farmerId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Farmer/Producer</FormLabel>
+                        <FormLabel>Farmer/Producer <span className="text-red-500">*</span></FormLabel>
                         <Select
                           onValueChange={(value) =>
                             field.onChange(parseInt(value))
@@ -1169,7 +1172,7 @@ export default function EnhancedAdminProducts() {
                           name={`variants.${index}.price`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Price *</FormLabel>
+                              <FormLabel>Price <span className="text-red-500">*</span></FormLabel>
                               <FormControl>
                                 <div className="relative">
                                   <span className="absolute left-3 top-2">
@@ -1231,7 +1234,7 @@ export default function EnhancedAdminProducts() {
                           name={`variants.${index}.quantity`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Quantity *</FormLabel>
+                              <FormLabel>Quantity <span className="text-red-500">*</span></FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
@@ -1256,7 +1259,7 @@ export default function EnhancedAdminProducts() {
                           name={`variants.${index}.unit`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Unit *</FormLabel>
+                              <FormLabel>Unit <span className="text-red-500">*</span></FormLabel>
                               <Select
                                 onValueChange={field.onChange}
                                 value={field.value}
@@ -1286,7 +1289,7 @@ export default function EnhancedAdminProducts() {
                           name={`variants.${index}.stockQuantity`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Stock Quantity *</FormLabel>
+                              <FormLabel>Stock Quantity <span className="text-red-500">*</span></FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
@@ -1309,9 +1312,9 @@ export default function EnhancedAdminProducts() {
                           name={`variants.${index}.sku`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>SKU</FormLabel>
+                              <FormLabel>SKU <span className="text-red-500">*</span></FormLabel>
                               <FormControl>
-                                <Input placeholder="Optional SKU" {...field} />
+                                <Input placeholder="Enter SKU code" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
