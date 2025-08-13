@@ -167,9 +167,8 @@ export default function NewsletterSubscriptionsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Consent</TableHead>
+                  <TableHead>Terms Agreement</TableHead>
                   <TableHead>Subscribed Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -177,10 +176,7 @@ export default function NewsletterSubscriptionsPage() {
               <TableBody>
                 {subscriptions.map((subscription) => (
                   <TableRow key={subscription.id}>
-                    <TableCell className="font-medium">
-                      {subscription.name || "-"}
-                    </TableCell>
-                    <TableCell>{subscription.email}</TableCell>
+                    <TableCell className="font-medium">{subscription.email}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
