@@ -78,19 +78,13 @@ export default function Footer() {
 
     setIsSubmitting(true);
     try {
-      await apiRequest(
-        `${import.meta.env.VITE_API_URL}/api/newsletter/subscribe`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            email,
-            agreedToTerms: true,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      await apiRequest("/api/newsletter/subscribe", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          agreedToTerms: true,
+        }),
+      });
 
       toast({
         title: "Subscription successful!",
@@ -113,9 +107,7 @@ export default function Footer() {
   // Fetch main categories
   const fetchMainCategories = async () => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/categories/main`
-      );
+      const response = await fetch("/api/categories/main");
       if (response.ok) {
         const data = await response.json();
         setMainCategories(data);
