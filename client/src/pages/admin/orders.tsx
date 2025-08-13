@@ -337,7 +337,13 @@ export default function AdminOrders() {
         "Total Amount": `₹${order.total}`,
         "Payment Method": order.paymentMethod || "N/A",
         Status: order.status,
-        "Shipping Address": order.shippingAddress || "N/A",
+        "Shipping Address": order.customerInfo
+          ? ` ${order.customerInfo.address || ""}, ${
+              order.customerInfo.city || ""
+            }, ${order.customerInfo.state || ""} - ${
+              order.customerInfo.zip || ""
+            }`
+          : "N/A",
         "Payment ID": order.paymentId || "N/A",
         "Items Count": order.items?.length || 0,
         "Delivered Date": order.deliveredAt
@@ -349,7 +355,7 @@ export default function AdminOrders() {
       // Convert to CSV
       const csvContent = [
         Object.keys(csvData[0]).join(","),
-        ...csvData.map((row) =>
+        ...csvData.map((row: { [key: string]: string }) =>
           Object.values(row)
             .map((val) => `"${val}"`)
             .join(",")
@@ -397,8 +403,14 @@ export default function AdminOrders() {
         "Total Amount": order.total,
         "Payment Method": order.paymentMethod || "N/A",
         Status: order.status,
-        "Shipping Address": order.shippingAddress || "N/A",
-        "Billing Address": order.billingAddress || "Same as shipping",
+        "Shipping Address": order.customerInfo
+          ? ` ${order.customerInfo.address || ""}, ${
+              order.customerInfo.city || ""
+            }, ${order.customerInfo.state || ""} - ${
+              order.customerInfo.zip || ""
+            }`
+          : "N/A",
+        // "Billing Address": order.billingAddress || "Same as shipping",
         "Payment ID": order.paymentId || "N/A",
         "Items Count": order.items?.length || 0,
         "Delivered Date": order.deliveredAt

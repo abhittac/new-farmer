@@ -31,7 +31,10 @@ import {
   ne,
   isNotNull,
   isNull,
+  or,
+  ilike,
 } from "drizzle-orm";
+import { storage } from "server/storage";
 
 // abhi
 // Get monthly sales for current year
@@ -224,7 +227,14 @@ export const getAllOrders = async (req: Request, res: Response) => {
     const conditions = [];
 
     if (search) {
-      conditions.push(like(users.name, `%${search}%`));
+      const searchTerm = `%${search}%`;
+      conditions.push(
+        or(
+          ilike(users.name, searchTerm),
+          ilike(orders.trackingId, searchTerm),
+          sql`CAST(${orders.id} AS TEXT) ILIKE ${searchTerm}`
+        )
+      );
     }
     if (status) {
       conditions.push(eq(orders.status, status));
@@ -872,37 +882,58 @@ export const exportOrders = async (req: Request, res: Response) => {
       .leftJoin(users, eq(orders.userId, users.id))
       .orderBy(desc(orders.createdAt));
 
-    // Get all order items with product details
+    // Fetch all order items (raw)
     const allOrderItems = await db
       .select({
+        id: orderItems.id,
         orderId: orderItems.orderId,
         productId: orderItems.productId,
+        variantId: orderItems.variantId,
         quantity: orderItems.quantity,
         price: orderItems.price,
-        productName: products.name,
-        productSku: products.sku,
-        productCategory: products.category,
+        // discountPrice: orderItems.discountPrice,
+        // variantName: orderItems.variantName,
+        // unit: orderItems.unit,
       })
-      .from(orderItems)
-      .leftJoin(products, eq(orderItems.productId, products.id));
+      .from(orderItems);
 
-    // Group order items by order ID
+    // Group order items by order ID and attach product info
     const itemsByOrderId: Record<number, any[]> = {};
-    allOrderItems.forEach((item) => {
-      if (!itemsByOrderId[item.orderId]) {
-        itemsByOrderId[item.orderId] = [];
-      }
-      itemsByOrderId[item.orderId].push({
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price,
-        productName: item.productName,
-        productSku: item.productSku,
-        productCategory: item.productCategory,
-      });
-    });
+    for (const item of allOrderItems) {
+      try {
+        const product = await storage.getProductById(item.productId); // uses your storage layer
+        const variant =
+          product?.variants?.find((v) => v.id === item.variantId) || null;
 
-    // Combine orders with their items
+        const productInfo = product
+          ? {
+              id: product.id,
+              name: product.name,
+              sku: variant?.sku || product.sku,
+              imageUrl: product.imageUrl,
+            }
+          : null;
+
+        if (!itemsByOrderId[item.orderId]) {
+          itemsByOrderId[item.orderId] = [];
+        }
+        itemsByOrderId[item.orderId].push({
+          ...item,
+          product: productInfo,
+        });
+      } catch (err) {
+        console.error("Error loading product for item:", item.id, err);
+        if (!itemsByOrderId[item.orderId]) {
+          itemsByOrderId[item.orderId] = [];
+        }
+        itemsByOrderId[item.orderId].push({
+          ...item,
+          product: null,
+        });
+      }
+    }
+
+    // Combine orders with items
     const ordersWithItems = ordersData.map((order) => ({
       ...order,
       items: itemsByOrderId[order.id] || [],
@@ -915,9 +946,10 @@ export const exportOrders = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error exporting orders:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to export orders", error: String(error) });
+    res.status(500).json({
+      message: "Failed to export orders",
+      error: String(error),
+    });
   }
 };
 
