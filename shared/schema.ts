@@ -176,6 +176,10 @@ export const insertFarmerSchema = createInsertSchema(farmers).omit({
   updatedAt: true,
 });
 
+export const updateFarmerSchema = insertFarmerSchema.extend({
+  imageUrl: z.string().optional().default(""),
+});
+
 // Cart Schema
 export const carts = pgTable("carts", {
   id: serial("id").primaryKey(),

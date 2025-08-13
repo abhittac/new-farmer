@@ -80,8 +80,10 @@ export const updateFarmer = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Farmer not found' });
     }
     
-    // Validate request body
-    const farmerData = insertFarmerSchema.parse(req.body);
+    // Validate request body - handle missing imageUrl field for updates
+    const farmerData = insertFarmerSchema.extend({
+      imageUrl: z.string().optional().default("")
+    }).parse(req.body);
     
     // Update farmer
     const [updatedFarmer] = await db
