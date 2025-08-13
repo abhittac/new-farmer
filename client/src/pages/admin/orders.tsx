@@ -65,6 +65,17 @@ interface OrderData {
   status: string;
   shippingAddress: string;
   paymentMethod: string;
+  customerInfo: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    notes: string;
+  };
   cancellationReason: string | null;
   deliveredAt: string | null;
   createdAt: string;
@@ -970,7 +981,11 @@ export default function AdminOrders() {
                                   {item.product?.name || "Product Name"}
                                 </h4>
                                 <p className="text-sm text-muted-foreground">
-                                  SKU: {item.product?.sku || "N/A"}
+                                  SKU: {item.variantSku || "N/A"}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  Variant: {item.product.variant[0].quantity}{" "}
+                                  {item.product.variant[0].unit}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
                                   Quantity: {item.quantity}
@@ -978,12 +993,7 @@ export default function AdminOrders() {
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium">
-                                ₹{item.price}/{item.quantity}{" "}
-                                {item.unit === "pcs" && item.quantity === 1
-                                  ? "Piece"
-                                  : formatSnakeCase(item.unit!)}
-                              </p>
+                              <p className="font-medium">₹{item.price}</p>
                               <p className="text-sm text-muted-foreground">
                                 Total: ₹{item.price * item.quantity}
                               </p>
@@ -1046,7 +1056,7 @@ export default function AdminOrders() {
           orderId={printStickerOrder.id}
           customerName={printStickerOrder.userName || "Guest Customer"}
           customerEmail={printStickerOrder.userEmail || "No email provided"}
-          shippingAddress={printStickerOrder.shippingAddress}
+          shippingAddress={`${printStickerOrder.customerInfo.address}, ${printStickerOrder.customerInfo.city}, ${printStickerOrder.customerInfo.state} ${printStickerOrder.customerInfo.zip}`}
           orderTotal={printStickerOrder.total}
           orderDate={printStickerOrder.createdAt}
           paymentMethod={printStickerOrder.paymentMethod}

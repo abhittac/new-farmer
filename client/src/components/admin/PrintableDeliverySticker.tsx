@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react';
-import JsBarcode from 'jsbarcode';
-import QRCode from 'qrcode';
+import React, { useRef, useEffect } from "react";
+import JsBarcode from "jsbarcode";
+import QRCode from "qrcode";
 
 interface DeliveryStickerProps {
   orderId: number;
@@ -10,6 +10,7 @@ interface DeliveryStickerProps {
   orderTotal: number;
   orderDate: string;
   paymentMethod: string;
+
   onClose: () => void;
 }
 
@@ -21,7 +22,7 @@ export function PrintableDeliverySticker({
   orderTotal,
   orderDate,
   paymentMethod,
-  onClose
+  onClose,
 }: DeliveryStickerProps) {
   const barcodeRef = useRef<SVGSVGElement>(null);
   const qrCodeRef = useRef<HTMLCanvasElement>(null);
@@ -35,7 +36,7 @@ export function PrintableDeliverySticker({
         height: 80,
         displayValue: true,
         fontSize: 14,
-        margin: 10
+        margin: 10,
       });
     }
 
@@ -45,12 +46,12 @@ export function PrintableDeliverySticker({
         orderId: `ORD-${orderId}`,
         customer: customerName,
         total: orderTotal,
-        date: orderDate
+        date: orderDate,
       };
-      
+
       QRCode.toCanvas(qrCodeRef.current, JSON.stringify(orderInfo), {
         width: 120,
-        margin: 2
+        margin: 2,
       });
     }
   }, [orderId, customerName, orderTotal, orderDate]);
@@ -82,7 +83,10 @@ export function PrintableDeliverySticker({
         </div>
 
         {/* Printable sticker content - A6 size optimized */}
-        <div className="sticker-content print:w-full" style={{ width: '148mm', minHeight: '105mm' }}>
+        <div
+          className="sticker-content print:w-full"
+          style={{ width: "148mm", minHeight: "105mm" }}
+        >
           {/* Header */}
           <div className="border-2 border-black p-4 bg-white">
             <div className="text-center mb-4">
@@ -94,16 +98,29 @@ export function PrintableDeliverySticker({
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <h3 className="font-semibold text-sm mb-2">ORDER DETAILS</h3>
-                <p className="text-xs"><strong>Order ID:</strong> ORD-{orderId}</p>
-                <p className="text-xs"><strong>Date:</strong> {new Date(orderDate).toLocaleDateString()}</p>
-                <p className="text-xs"><strong>Total:</strong> ₹{orderTotal.toFixed(2)}</p>
-                <p className="text-xs"><strong>Payment:</strong> {paymentMethod}</p>
+                <p className="text-xs">
+                  <strong>Order ID:</strong> ORD-{orderId}
+                </p>
+                <p className="text-xs">
+                  <strong>Date:</strong>{" "}
+                  {new Date(orderDate).toLocaleDateString()}
+                </p>
+                <p className="text-xs">
+                  <strong>Total:</strong> ₹{orderTotal.toFixed(2)}
+                </p>
+                <p className="text-xs">
+                  <strong>Payment:</strong> {paymentMethod}
+                </p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold text-sm mb-2">CUSTOMER INFO</h3>
-                <p className="text-xs"><strong>Name:</strong> {customerName || 'Guest Customer'}</p>
-                <p className="text-xs"><strong>Email:</strong> {customerEmail || 'No email provided'}</p>
+                <p className="text-xs">
+                  <strong>Name:</strong> {customerName || "Guest Customer"}
+                </p>
+                <p className="text-xs">
+                  <strong>Email:</strong> {customerEmail || "No email provided"}
+                </p>
               </div>
             </div>
 
@@ -111,33 +128,30 @@ export function PrintableDeliverySticker({
             <div className="mb-4">
               <h3 className="font-semibold text-sm mb-2">DELIVERY ADDRESS</h3>
               <div className="border border-gray-300 p-2 min-h-[60px] text-xs">
-                {shippingAddress || 'Address not provided'}
+                {shippingAddress || "Address not provided"}
               </div>
             </div>
 
             {/* Barcodes */}
             <div className="grid grid-cols-2 gap-4 items-center">
               <div className="text-center">
-                <p className="text-xs font-semibold mb-2">SCAN FOR ORDER INFO</p>
-                <canvas 
-                  ref={qrCodeRef}
-                  className="mx-auto"
-                />
+                <p className="text-xs font-semibold mb-2">
+                  SCAN FOR ORDER INFO
+                </p>
+                <canvas ref={qrCodeRef} className="mx-auto" />
               </div>
-              
+
               <div className="text-center">
                 <p className="text-xs font-semibold mb-2">ORDER BARCODE</p>
-                <svg 
-                  ref={barcodeRef}
-                  className="mx-auto"
-                />
+                <svg ref={barcodeRef} className="mx-auto" />
               </div>
             </div>
 
             {/* Footer */}
             <div className="border-t border-gray-300 mt-4 pt-2 text-center">
               <p className="text-xs">
-                For delivery support: support@harvestdirect.com | +91-XXXX-XXXX-XX
+                For delivery support: support@harvestdirect.com |
+                +91-XXXX-XXXX-XX
               </p>
               <p className="text-xs font-semibold">
                 Handle with care - Fresh produce inside
@@ -148,8 +162,9 @@ export function PrintableDeliverySticker({
       </div>
 
       {/* Print styles */}
-      <style dangerouslySetInnerHTML={{
-        __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @media print {
           body * {
             visibility: hidden;
@@ -173,8 +188,9 @@ export function PrintableDeliverySticker({
             margin: 5mm;
           }
         }
-        `
-      }} />
+        `,
+        }}
+      />
     </div>
   );
 }

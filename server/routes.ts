@@ -2206,19 +2206,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get detailed order information for admin
   app.get(`${apiPrefix}/admin/orders/:id/details`, async (req, res) => {
     try {
-      const orderId = parseInt(req.params.id);
+      const orderId = Number(req.params.id);
+
+      if (isNaN(orderId) || orderId <= 0) {
+        return res.status(400).json({ message: "Invalid order ID" });
+      }
 
       if (!orderId) {
         return res.status(400).json({ message: "Invalid order ID" });
       }
 
       const order = await storage.getOrderById(orderId);
+
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
 
       const orderItems = await storage.getOrderItemsByOrderId(orderId);
-
+      console.log(">>debugger", orderItems);
       // Optional: show who placed the order (admin/staff)
       let user = null;
       if (order.userId) {
@@ -2275,14 +2280,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         items: await Promise.all(
           (orderItems || []).map(async (item) => {
             try {
+              // Get the product
               const product = await storage.getProductById(item.productId);
+
+              // Get the variant (sku, price, etc.)
+              const variant = item.variantId
+                ? await storage.getProductVariantById(item.variantId)
+                : null;
+
               return {
                 ...item,
                 product: product
                   ? {
                       id: product.id,
                       name: product.name,
-                      sku: product.sku,
+                      variant: variant,
                       imageUrl: product.imageUrl,
                     }
                   : null,
@@ -2302,7 +2314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Order details fetch error:", error);
       res.status(500).json({
-        message: "Failed to fetch orders",
+        message: "Failed to fetch order",
         error: error instanceof Error ? error.message : String(error),
       });
     }

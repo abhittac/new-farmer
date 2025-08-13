@@ -378,7 +378,7 @@ export const getOrderById = async (req: Request, res: Response) => {
       items: orderItemsWithProducts,
     });
   } catch (error) {
-    console.error("Error fetching order:", error);
+    console.error("Error fetching order:x", error);
     res
       .status(500)
       .json({ message: "Failed to fetch order", error: String(error) });

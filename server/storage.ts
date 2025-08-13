@@ -1002,7 +1002,13 @@ export class DatabaseStorage implements IStorage {
       variants,
     };
   }
-
+  async getProductVariantById(variantId: number) {
+    return db
+      .select()
+      .from(productVariants)
+      .where(eq(productVariants.id, variantId))
+      .limit(1);
+  }
   async getProductsByCategory(category: string): Promise<Product[]> {
     // Fetch all products in the category
     const categoryProducts = await db
@@ -1760,7 +1766,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrderById(id: number): Promise<Order | undefined> {
-    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    const [order] = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, id))
+      .limit(1);
     return order;
   }
 
@@ -1773,10 +1783,10 @@ export class DatabaseStorage implements IStorage {
         variantId: orderItems.variantId,
         quantity: orderItems.quantity,
         price: orderItems.price,
-        discountPrice: orderItems.discountPrice,
+        // discountPrice: orderItems.discountPrice,
         productName: products.name,
         productImage: products.imageUrl,
-        variantName: productVariants.name,
+        // variantName: productVariants.name,
         unit: productVariants.unit,
         variantSku: productVariants.sku,
         stockQuantity: productVariants.stockQuantity,
