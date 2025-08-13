@@ -115,10 +115,12 @@ export default function Checkout() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify({
           id: discountId,
           cartTotal: subtotal + shipping,
+          userId: user?.id,
         }),
       });
 
