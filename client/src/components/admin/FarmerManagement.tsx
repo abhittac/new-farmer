@@ -55,7 +55,7 @@ import {
 } from "@/components/ui/select";
 import placeholderImage from "../../../../public/uploads/products/no-profile.jpg";
 import MainLoader from "@/utils/MainLoader";
-import { c } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
+
 // Create a comprehensive validation schema for the farmer form
 const farmerFormSchema = insertFarmerSchema.extend({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -76,7 +76,7 @@ const farmerFormSchema = insertFarmerSchema.extend({
   bankAccount: z.string().optional(),
   panNumber: z.string().optional(),
   aadharNumber: z.string().optional(),
-  imageUrl: z.string().url("Please enter a valid image URL"),
+  imageUrl: z.string().min(1, "Image URL is required"),
   featured: z.boolean().default(false),
   verified: z.boolean().default(false),
   active: z.boolean().default(true),

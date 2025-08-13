@@ -220,6 +220,10 @@ export default function Checkout() {
           "customerInfo",
           JSON.stringify(orderCustomerInfo)
         );
+        // Store applied discount for Razorpay flow
+        if (appliedDiscount) {
+          sessionStorage.setItem("appliedDiscount", JSON.stringify(appliedDiscount));
+        }
         setLocation(
           `/payment?amount=${calculateTotal().toFixed(
             2
@@ -243,6 +247,7 @@ export default function Checkout() {
             amount: calculateTotal().toFixed(2) * 100, // send in paise
             currency: "INR",
             customerInfo: orderCustomerInfo,
+            appliedDiscount: appliedDiscount, // Include applied discount
           }),
         });
 

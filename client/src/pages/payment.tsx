@@ -137,6 +137,9 @@ export default function Payment() {
       const customerInfo = JSON.parse(
         sessionStorage.getItem("customerInfo") || "{}"
       );
+      const appliedDiscount = JSON.parse(
+        sessionStorage.getItem("appliedDiscount") || "null"
+      );
       // Configure Razorpay options
       const options = {
         key: data.keyId,
@@ -161,10 +164,17 @@ export default function Payment() {
                 razorpaySignature: response.razorpay_signature,
                 amount: data.amount,
                 currency: data.currency,
-                customerInfo: customerInfo, // You can get this from form data if needed
+                customerInfo: customerInfo,
+                appliedDiscount: appliedDiscount, // Include applied discount
               }),
             });
 
+            // Clear session storage for applied discount
+            if (appliedDiscount) {
+              sessionStorage.removeItem("appliedDiscount");
+            }
+            sessionStorage.removeItem("customerInfo");
+            
             // Clear the cart from frontend context
             await clearCart();
 

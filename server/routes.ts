@@ -1327,6 +1327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currency = "INR",
           customerInfo,
           paymentMethod = "razorpay", // Default to COD
+          appliedDiscount, // Include applied discount
         } = req.body;
 
         if (!sessionId) {
@@ -1453,6 +1454,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         } catch (emailErr) {
           console.error("Email notification failed:", emailErr);
+        }
+
+        // Apply discount if present (increment usage count)
+        if (appliedDiscount && appliedDiscount.id) {
+          try {
+            await storage.applyDiscount(
+              appliedDiscount.id,
+              user.id,
+              sessionId,
+              order.id
+            );
+            console.log(`Discount ${appliedDiscount.code} applied to order ${order.id}`);
+          } catch (discountErr) {
+            console.error("Failed to apply discount:", discountErr);
+            // Continue without failing the order
+          }
         }
 
         // Clear cart
@@ -2530,21 +2547,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public route to get active discounts for customer view
-  app.get("/api/discounts/active", async (req, res) => {
+  // Public route to get active discounts for customer view (with user-specific filtering)
+  app.get("/api/discounts/active", authenticate, async (req, res) => {
     try {
+      const user = (req as any).user;
       const activeDiscounts = await storage.getActiveDiscounts();
-      // Only return essential info for public view
-      const publicDiscounts = activeDiscounts.map((discount) => ({
-        id: discount.id,
-        code: discount.code,
-        type: discount.type,
-        value: discount.value,
-        description: discount.description,
-        minPurchase: discount.minPurchase,
-        endDate: discount.endDate,
-      }));
-      res.json(publicDiscounts);
+      
+      // Filter out discounts that user has already used (if perUser is true)
+      const availableDiscounts = await Promise.all(
+        activeDiscounts.map(async (discount) => {
+          if (discount.perUser && user?.id) {
+            const userUsage = await storage.getDiscountUsage(discount.id, user.id);
+            if (userUsage > 0) {
+              return null; // User has already used this discount
+            }
+          }
+          
+          // Check if discount has reached its usage limit
+          if (discount.usageLimit && discount.usageLimit > 0 && 
+              discount.used && discount.used >= discount.usageLimit) {
+            return null; // Discount has reached its usage limit
+          }
+          
+          return {
+            id: discount.id,
+            code: discount.code,
+            type: discount.type,
+            value: discount.value,
+            description: discount.description,
+            minPurchase: discount.minPurchase,
+            endDate: discount.endDate,
+          };
+        })
+      );
+      
+      // Filter out null values
+      const filteredDiscounts = availableDiscounts.filter(discount => discount !== null);
+      res.json(filteredDiscounts);
     } catch (error) {
       console.error("Active discounts fetch error:", error);
       res.status(500).json({ message: "Failed to fetch active discounts" });
