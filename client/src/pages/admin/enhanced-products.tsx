@@ -216,7 +216,7 @@ export default function EnhancedAdminProducts() {
       imageUrl: "",
       imageUrls: "",
       videoUrl: "",
-      farmerId: 1,
+      farmerId: 0, // 0 means no farmer selected, will fail validation
       naturallyGrown: false,
       chemicalFree: false,
       premiumQuality: false,
@@ -596,7 +596,7 @@ export default function EnhancedAdminProducts() {
       imageUrl: "",
       imageUrls: "",
       videoUrl: "",
-      farmerId: farmers[0]?.id || 1,
+      farmerId: 0, // Force user to select a farmer
       naturallyGrown: false,
       chemicalFree: false,
       premiumQuality: false,
