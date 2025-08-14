@@ -26,11 +26,12 @@ Core frontend components include pages for Home, Product Detail, All Products, A
 ### Backend
 - **Framework**: Express.js
 - **ORM**: Drizzle ORM (configured for PostgreSQL)
-- **Data Storage**: Currently uses in-memory storage for development, designed for PostgreSQL integration.
-- **API Routes**: Handles CRUD operations for products, farmer information retrieval, and shopping cart actions.
-- **Data Schemas**: Defined for Products, Farmers, Cart, Testimonials, and Newsletter subscriptions.
-- **Authentication**: Includes SMS OTP verification for registration and password changes, integrating with Twilio.
-- **Admin Functionality**: Features for managing orders and processing order cancellation requests.
+- **Data Storage**: PostgreSQL database with Neon hosting for production data
+- **API Routes**: Handles CRUD operations for products, farmer information retrieval, shopping cart actions, and shipping services
+- **Data Schemas**: Defined for Products, Farmers, Cart, Testimonials, Newsletter subscriptions, and Orders
+- **Authentication**: Includes SMS OTP verification for registration and password changes, integrating with Twilio
+- **Admin Functionality**: Features for managing orders and processing order cancellation requests
+- **Shipping Integration**: India Post API integration for real-time shipping rates, tracking, and COD services
 
 ### System Design Choices
 - **Deployment**: Configured for deployment on Replit, supporting both development and production environments.
@@ -57,3 +58,24 @@ Core frontend components include pages for Home, Product Detail, All Products, A
 - Vite (for development and building)
 - Twilio API (for SMS OTP services)
 - PostgreSQL (database, configured)
+- India Post API (for shipping and tracking services)
+- Razorpay (for payment processing)
+
+## Recent Updates (August 14, 2025)
+
+### India Post API Integration
+- **Shipping Rate Calculator**: Real-time calculation of shipping costs using India Post services
+  - Speed Post: ₹205 (4 days delivery)
+  - Registered Post: ₹145 (7 days delivery)
+  - Express Parcel: Available for bulk orders
+- **Pincode Validation**: Validates Indian pincodes and provides location information
+- **Order Tracking**: Real-time shipment tracking with status updates and location history
+- **COD Support**: Cash on Delivery availability checking for different locations
+- **Shipping Page**: Comprehensive shipping showcase at `/shipping` with calculator and tracking tools
+
+### Technical Implementation
+- Created `server/indiaPostApi.ts` for shipping service integration
+- Added shipping API routes: `/api/shipping/validate-pincode`, `/api/shipping/calculate-rates`, `/api/shipping/track`
+- Built React components: `ShippingCalculator` and `OrderTracking`
+- Integrated fallback data for common Indian cities when external APIs are unavailable
+- Added shipping page to main navigation
