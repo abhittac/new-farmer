@@ -249,7 +249,7 @@ export default function Contact() {
                 Many of our partner farms follow organic practices but don't
                 always have formal certification due to cost constraints. We
                 personally verify all farming methods to ensure they meet our
-                standards for chemical-free production.
+                standards for preservatives-free production.
               </p>
             </div>
           </div>

@@ -108,7 +108,7 @@ export default function OurStory() {
               We envision a world where traditional farming knowledge is valued
               and preserved, where farmers receive fair compensation for their
               expertise, and where consumers can access truly natural,
-              chemical-free foods directly from their source.
+              preservatives-free foods directly from their source.
             </p>
           </div>
 

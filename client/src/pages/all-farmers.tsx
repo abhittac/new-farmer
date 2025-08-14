@@ -162,7 +162,7 @@ export default function AllFarmers() {
               Join Our Farmer Network
             </h2>
             <p className="text-olive text-lg">
-              Are you a farmer committed to traditional, chemical-free
+              Are you a farmer committed to traditional, preservatives-free
               agriculture? We're always looking to expand our network of
               passionate growers who share our vision for sustainable,
               high-quality food production.

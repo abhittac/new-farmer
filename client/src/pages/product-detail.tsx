@@ -188,7 +188,7 @@ export default function ProductDetail() {
                 {product?.chemicalFree && (
                   <div className="flex items-center text-sm text-olive">
                     <Shield className="text-primary mr-2 h-4 w-4" />
-                    <span>Chemical-Free</span>
+                    <span>Preservatives-Free</span>
                   </div>
                 )}
                 {product?.premiumQuality && (

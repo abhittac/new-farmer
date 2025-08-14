@@ -130,7 +130,7 @@ export default function OurProcess() {
                         clipRule="evenodd"
                       ></path>
                     </svg>
-                    <span>Focus on chemical-free growing practices</span>
+                    <span>Focus on preservatives-free growing practices</span>
                   </li>
                   <li className="flex items-start">
                     <svg

@@ -29,7 +29,7 @@ export default function FAQs() {
                 <AccordionItem value="item-2" className="border rounded-md px-4 mt-3">
                   <AccordionTrigger className="text-forest font-medium py-4">Are your products certified organic?</AccordionTrigger>
                   <AccordionContent className="text-olive pb-4">
-                    Many of our partner farms follow organic practices but don't always have formal certification due to cost constraints. We personally verify all farming methods to ensure they meet our standards for chemical-free production. Products with official organic certification are clearly labeled on our website.
+                    Many of our partner farms follow organic practices but don't always have formal certification due to cost constraints. We personally verify all farming methods to ensure they meet our standards for preservatives-free production. Products with official organic certification are clearly labeled on our website.
                   </AccordionContent>
                 </AccordionItem>
 

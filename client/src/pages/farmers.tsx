@@ -143,7 +143,7 @@ export default function Farmers() {
             <div>
               <h3 className="font-heading text-forest text-2xl font-semibold mb-4">Natural Pest Management</h3>
               <p className="text-olive mb-6">
-                Instead of chemical pesticides, our farmers use companion planting, natural predators, and traditional knowledge to manage pests. This protects beneficial insects and keeps harmful chemical residues off your food.
+                Instead of chemical pesticides, our farmers use companion planting, natural predators, and traditional knowledge to manage pests. This protects beneficial insects and keeps harmful preservatives off your food.
               </p>
               <h3 className="font-heading text-forest text-2xl font-semibold mb-4">Seed Preservation</h3>
               <p className="text-olive">
@@ -156,7 +156,7 @@ export default function Farmers() {
             <div className="order-2 md:order-1">
               <h3 className="font-heading text-forest text-2xl font-semibold mb-4">Natural Fertilization</h3>
               <p className="text-olive mb-6">
-                Using compost, cover crops, and natural amendments, our farmers build soil health naturally. This creates nutrient-dense foods with complex flavors while protecting local watersheds from chemical runoff.
+                Using compost, cover crops, and natural amendments, our farmers build soil health naturally. This creates nutrient-dense foods with complex flavors while protecting local watersheds from harmful runoff.
               </p>
               <h3 className="font-heading text-forest text-2xl font-semibold mb-4">Mindful Harvesting</h3>
               <p className="text-olive">

@@ -241,7 +241,7 @@ export default function Home() {
 
               <p className="text-white text-base sm:text-lg max-w-xl mb-8 text-shadow-extra-strong">
                 Experience the authentic flavors of traditionally grown,
-                chemical-free products sourced directly from the farmers who
+                preservatives-free products sourced directly from the farmers who
                 nurture them with generations of wisdom.
               </p>
 
@@ -384,7 +384,7 @@ export default function Home() {
                   <span className="block text-secondary text-3xl font-bold">
                     100%
                   </span>
-                  <span className="text-olive text-sm">Chemical-Free</span>
+                  <span className="text-olive text-sm">Preservatives-Free</span>
                 </div>
 
                 <div className="hidden md:block h-10 w-px bg-olive/20 mx-4"></div>
@@ -597,7 +597,7 @@ export default function Home() {
               <ProcessStep
                 number={1}
                 title="Sustainable Cultivation"
-                description="Our partner farmers use traditional, chemical-free methods that preserve soil health and biodiversity. Many practice polyculture, growing multiple crops that support each other naturally."
+                description="Our partner farmers use traditional, preservatives-free methods that preserve soil health and biodiversity. Many practice polyculture, growing multiple crops that support each other naturally."
               />
             </div>
 

@@ -57,7 +57,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     {
       condition: product.chemicalFree,
       icon: <Shield className="w-4 h-4" />,
-      label: "Chemical Free",
+      label: "Preservatives Free",
       bg: "bg-green-100 text-green-800",
     },
     {
@@ -124,7 +124,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             </p>
           )}
 
-          {/* ⭐ Product Tags (Premium, Chemical-Free, etc.) */}
+          {/* ⭐ Product Tags (Premium, Preservatives-Free, etc.) */}
           <div className="flex flex-wrap gap-2 my-2">
             {badges
               .filter((badge) => badge.condition)

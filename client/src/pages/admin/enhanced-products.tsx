@@ -850,7 +850,7 @@ export default function EnhancedAdminProducts() {
                             {product.chemicalFree && (
                               <Badge variant="secondary" className="text-xs">
                                 <Shield className="h-3 w-3 mr-1" />
-                                Chemical-Free
+                                Preservatives-Free
                               </Badge>
                             )}
                             {product.premiumQuality && (
@@ -1408,9 +1408,9 @@ export default function EnhancedAdminProducts() {
                               />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel>Chemical-Free</FormLabel>
+                              <FormLabel>Preservatives-Free</FormLabel>
                               <FormDescription>
-                                No chemicals or pesticides used in production
+                                No preservatives or harmful additives used in production
                               </FormDescription>
                             </div>
                           </FormItem>
