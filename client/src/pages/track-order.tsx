@@ -84,57 +84,11 @@ export default function TrackOrder() {
   // };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setIsLoading(true);
-    setTrackingResult(null); // Clear previous result
 
-    if (!orderNumber.trim()) {
-      setError("Please enter tracking number.");
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(false);
     window.open(
       "https://www.indiapost.gov.in/vas/Pages/IndiaPostHome.aspx",
       "_blank"
     );
-
-    // try {
-    //   const res = await fetch("/api/orders/tracking", {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({ orderNumber, email }),
-    //   });
-
-    //   const data = await res.json();
-
-    //   if (!res.ok) {
-    //     throw new Error(data.message || "Failed to fetch tracking info");
-    //   }
-
-    //   // Format tracking events for UI if needed
-    //   const formattedEvents = (data.trackingEvents || []).map((event: any) => ({
-    //     date: new Date(event.date).toLocaleString(),
-    //     status: event.status,
-    //     location: event.location || "Online", // fallback if not available
-    //   }));
-
-    //   setTrackingResult({
-    //     orderNumber: data.orderNumber,
-    //     status: data.status,
-    //     statusDate: new Date(data.statusDate).toLocaleDateString(),
-    //     estimatedDelivery: data.estimatedDelivery
-    //       ? new Date(data.estimatedDelivery).toLocaleDateString()
-    //       : "",
-    //     shippingAddress: data.shippingAddress,
-    //     items: data.items,
-    //     trackingEvents: formattedEvents,
-    //   });
-    // } catch (err: any) {
-    //   setError(err.message || "Something went wrong");
-    // } finally {
-    //   setIsLoading(false);
-    // }
   };
 
   const getStatusStep = () => {
@@ -172,54 +126,21 @@ export default function TrackOrder() {
 
           {/* Tracking Form */}
           <div className="bg-white shadow-lg rounded-xl p-6 md:p-8 mb-8 border border-gray-100">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                {/* Tracking ID Input */}
-                <div>
-                  <label
-                    htmlFor="orderNumber"
-                    className="block text-gray-800 font-semibold mb-2"
-                  >
-                    Tracking ID <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="orderNumber"
-                    type="text"
-                    value={orderNumber}
-                    onChange={(e) =>
-                      setOrderNumber(e.target.value.toUpperCase())
-                    }
-                    placeholder="e.g. HD123456"
-                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                  {/* <p className="text-xs text-gray-500 mt-1">
-                    Found in your order confirmation email
-                  </p> */}
-                </div>
+            <div className="flex justify-center ">
+              {/* Tracking ID Input */}
 
-                {/* Submit Button */}
-                <div className="md:pt-[30px] relative -top-0">
-                  <button
-                    // type="submit"
-
-                    // disabled={isLoading}
-                    className="w-full px-4 py-2 bg-primary text-white font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-70 flex items-center justify-center"
-                  >
-                    {isLoading && (
-                      <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
-                    )}
-                    {isLoading ? "Tracking..." : "Track Order"}
-                  </button>
-                </div>
+              {/* Submit Button */}
+              <div className="md:pt-[30px] relative -top-0">
+                <button
+                  // type="submit"
+                  onClick={handleSubmit}
+                  // disabled={isLoading}
+                  className="w-full px-4 py-2 bg-primary text-white font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-70 flex items-center justify-center"
+                >
+                  Track Order
+                </button>
               </div>
-
-              {/* Error Message */}
-              {error && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-md border border-red-200 text-sm">
-                  {error}
-                </div>
-              )}
-            </form>
+            </div>
           </div>
 
           {/* Demo Note */}
