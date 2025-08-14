@@ -317,9 +317,9 @@ export default function Home() {
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-0 right-0 flex justify-center z-20">
+        <div className="absolute bottom-2 sm:bottom-4 left-0 right-0 flex justify-center z-20">
           <Link href="#story" onClick={scrollToStory}>
-            <div className="text-white animate-bounce bg-black/20 p-2 rounded-full backdrop-blur-sm">
+            <div className="text-white animate-bounce bg-black/20 p-2 rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors duration-300">
               <ChevronDown className="h-6 w-6" />
             </div>
           </Link>
