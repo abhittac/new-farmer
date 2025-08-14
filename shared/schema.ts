@@ -483,6 +483,13 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
 export type ContactMessage = typeof contactMessages.$inferSelect;
 
+// ✅ Missing Product and ProductVariant types
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Product = typeof products.$inferSelect;
+
+export type InsertProductVariant = z.infer<typeof insertProductVariantSchema>;
+export type ProductVariant = typeof productVariants.$inferSelect;
+
 // Team Members Schema
 export const teamMembers = pgTable("team_members", {
   id: serial("id").primaryKey(),
