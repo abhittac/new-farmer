@@ -1038,7 +1038,7 @@ export class DatabaseStorage implements IStorage {
     const featuredProducts = await db
       .select()
       .from(products)
-      .where(and(eq(products.featured, true), eq(products.isDeleted, false)));
+      .where(eq(products.featured, true));
     return featuredProducts;
   }
   async updateProductStock(

@@ -172,8 +172,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (sortField === "price") {
         orderExpr =
           orderDirection === "asc"
-            ? sql`(SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = products.id AND pv.is_deleted = false) ASC`
-            : sql`(SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = products.id AND pv.is_deleted = false) DESC`;
+            ? sql`(SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = products.id) ASC`
+            : sql`(SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = products.id) DESC`;
       } else if (sortField === "name") {
         orderExpr =
           orderDirection === "asc" ? asc(products.name) : desc(products.name);
@@ -196,7 +196,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sql`EXISTS (
             SELECT 1 FROM product_variants pv
             WHERE pv.product_id = products.id
-              AND pv.is_deleted = false
               ${
                 minPriceNum !== null
                   ? sql`AND pv.price >= ${minPriceNum}`
@@ -238,7 +237,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(
           and(
             ...productFilters,
-            eq(productVariants.isDeleted, false),
             minPriceNum !== null
               ? sql`${productVariants.price} >= ${minPriceNum}`
               : sql`TRUE`,
@@ -259,12 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const variants = await db
         .select()
         .from(productVariants)
-        .where(
-          and(
-            inArray(productVariants.productId, productIds),
-            eq(productVariants.isDeleted, false)
-          )
-        );
+        .where(inArray(productVariants.productId, productIds));
 
       // Step 5: Map variants to products
       const variantsMap = variants.reduce((acc, variant) => {
@@ -2195,12 +2188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .from(productVariants)
         .innerJoin(products, eq(products.id, productVariants.productId))
-        .where(
-          and(
-            lte(productVariants.stockQuantity, threshold),
-            eq(productVariants.isDeleted, false) // use 0 if isDeleted is tinyint
-          )
-        );
+        .where(lte(productVariants.stockQuantity, threshold));
 
       // Construct a friendly variant name like "Apples - 1kg"
       const formattedVariants = lowStockVariants.map((v) => ({
