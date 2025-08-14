@@ -175,10 +175,11 @@ export default function ProductCard({ product }: ProductCardProps) {
                   <span className="text-gray-500 line-through text-sm">
                     ₹{price.toFixed(2)}
                   </span>
-                  <span className="text-red-600 text-xs font-medium">
-                    Save ₹{(price - discountPrice!).toFixed(2)} (
-                    {Math.round(((price - discountPrice!) / price) * 100)}%)
-                  </span>
+                  <div className="flex items-center space-x-1">
+                    <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                      {Math.round(((price - discountPrice!) / price) * 100)}% OFF
+                    </span>
+                  </div>
                 </>
               ) : (
                 <span className="text-forest font-bold text-lg md:text-xl">

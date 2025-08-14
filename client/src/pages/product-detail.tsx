@@ -228,46 +228,56 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-              <div className="flex items-center space-x-4 mb-8">
-                {selectedVariant?.discountPrice &&
-                selectedVariant.discountPrice < selectedVariant.price ? (
-                  <div className="flex items-center space-x-3">
-                    <span className="text-forest text-3xl font-bold">
-                      ₹{selectedVariant.discountPrice.toFixed(2)}
-                    </span>
-                    <span className="text-gray-500 line-through text-xl">
-                      ₹{selectedVariant.price.toFixed(2)}
-                    </span>
-                    <span className="bg-red-500 text-white px-2 py-1 rounded text-sm font-semibold">
-                      {Math.round(
-                        ((selectedVariant.price -
-                          selectedVariant.discountPrice) /
-                          selectedVariant.price) *
-                          100,
-                      )}
-                      % OFF
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-forest text-3xl font-bold">
-                    ₹
-                    {selectedVariant
-                      ? selectedVariant.price.toFixed(2)
-                      : product?.price?.toFixed(2) || "0.00"}
-                    /
-                    {selectedVariant
-                      ? formatUnit(
-                          selectedVariant.unit,
-                          selectedVariant.quantity,
-                        )
-                      : formatUnit(product?.unit, product?.quantity)}
+              <div className="space-y-4 mb-8">
+                {/* Price Section */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
+                  {selectedVariant?.discountPrice &&
+                  selectedVariant.discountPrice < selectedVariant.price ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-forest text-2xl sm:text-3xl font-bold">
+                          ₹{selectedVariant.discountPrice.toFixed(2)}
+                        </span>
+                        <span className="text-gray-500 line-through text-lg sm:text-xl">
+                          ₹{selectedVariant.price.toFixed(2)}
+                        </span>
+                      </div>
+                      <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-semibold w-fit">
+                        {Math.round(
+                          ((selectedVariant.price -
+                            selectedVariant.discountPrice) /
+                            selectedVariant.price) *
+                            100,
+                        )}% OFF
+                      </span>
+                      <div className="text-sm text-gray-600">
+                        per {selectedVariant ? formatUnit(selectedVariant.unit, selectedVariant.quantity) : formatUnit(product?.unit, product?.quantity)}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row sm:items-baseline sm:space-x-2 space-y-1 sm:space-y-0">
+                      <span className="text-forest text-2xl sm:text-3xl font-bold">
+                        ₹{selectedVariant
+                          ? selectedVariant.price.toFixed(2)
+                          : product?.price?.toFixed(2) || "0.00"}
+                      </span>
+                      <span className="text-sm sm:text-base text-gray-600">
+                        per {selectedVariant
+                          ? formatUnit(selectedVariant.unit, selectedVariant.quantity)
+                          : formatUnit(product?.unit, product?.quantity)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Stock Info */}
+                <div className="text-sm text-olive bg-background/80 px-3 py-2 rounded-md w-fit">
+                  <span className="font-medium">In Stock: </span>
+                  <span className="font-semibold text-forest">
+                    {selectedVariant?.stockQuantity ??
+                      product?.stockQuantity ??
+                      0} units
                   </span>
-                )}
-                <div className="text-sm text-olive bg-background/80 px-3 py-1 rounded">
-                  In Stock:{" "}
-                  {selectedVariant?.stockQuantity ??
-                    product?.stockQuantity ??
-                    0}
                 </div>
               </div>
               <div className="mb-8">
