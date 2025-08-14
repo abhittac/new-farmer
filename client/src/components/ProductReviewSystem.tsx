@@ -14,7 +14,8 @@ const reviewSchema = z.object({
   userId: z.number(),
   productId: z.number(),
   rating: z.number().min(1, "Please select a rating").max(5),
-  review: z.string().min(10, "Review must be at least 10 characters long"),
+  reviewText: z.string().min(10, "Review must be at least 10 characters long"),
+  customerName: z.string().min(1, "Customer name is required"),
 });
 
 // Type definition for our form
@@ -59,7 +60,8 @@ export default function ProductReviewSystem({ productId }: ProductReviewSystemPr
       userId: userId,
       productId: productId,
       rating: 0,
-      review: "",
+      reviewText: "",
+      customerName: "",
     }
   });
 
@@ -69,10 +71,18 @@ export default function ProductReviewSystem({ productId }: ProductReviewSystemPr
   // Set up the mutation to submit the review
   const mutation = useMutation({
     mutationFn: async (data: ReviewFormData) => {
-      return apiRequest(`/api/products/${productId}/reviews`, {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
+      console.log('Submitting review data:', data);
+      try {
+        const response = await apiRequest(`/api/products/${productId}/reviews`, {
+          method: "POST",
+          body: JSON.stringify(data)
+        });
+        console.log('Review submission response:', response);
+        return response;
+      } catch (error) {
+        console.error('Review submission error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       // Show success message
@@ -98,6 +108,7 @@ export default function ProductReviewSystem({ productId }: ProductReviewSystemPr
       queryClient.invalidateQueries({ queryKey: [`/api/products/${productId}/can-review`] });
     },
     onError: (error) => {
+      console.error('Review submission failed:', error);
       // Show error message
       toast({
         title: "Failed to submit review",
@@ -250,16 +261,31 @@ export default function ProductReviewSystem({ productId }: ProductReviewSystemPr
               </div>
               
               <div className="space-y-2">
-                <label htmlFor="review" className="block text-sm font-medium">Your Review</label>
+                <label htmlFor="customerName" className="block text-sm font-medium">Your Name</label>
+                <input
+                  id="customerName"
+                  type="text"
+                  placeholder="Enter your name"
+                  {...register("customerName")}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  aria-invalid={!!errors.customerName}
+                />
+                {errors.customerName && (
+                  <p className="text-sm text-red-500">{errors.customerName.message}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="reviewText" className="block text-sm font-medium">Your Review</label>
                 <Textarea
-                  id="review"
+                  id="reviewText"
                   placeholder="Share your experience with this product..."
                   rows={5}
-                  {...register("review")}
-                  aria-invalid={!!errors.review}
+                  {...register("reviewText")}
+                  aria-invalid={!!errors.reviewText}
                 />
-                {errors.review && (
-                  <p className="text-sm text-red-500">{errors.review.message}</p>
+                {errors.reviewText && (
+                  <p className="text-sm text-red-500">{errors.reviewText.message}</p>
                 )}
               </div>
               

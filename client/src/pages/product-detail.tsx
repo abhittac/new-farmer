@@ -151,7 +151,7 @@ export default function ProductDetail() {
               transition={{ duration: 0.6, delay: 0.2 }}
             >
               <span className="bg-secondary/20 text-secondary-dark px-3 py-1 rounded-full text-sm font-semibold">
-                {product?.category || "Product"}
+                {product?.category || "Product"}{product?.subcategory ? ` > ${product.subcategory}` : ""}
               </span>
               <h1 className="font-heading text-forest text-3xl md:text-4xl font-bold mt-3 mb-4">
                 {product?.name || "Product Name"}
