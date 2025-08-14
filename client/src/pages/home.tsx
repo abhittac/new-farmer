@@ -26,6 +26,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAnimations } from "@/hooks/use-animations";
 import { ChevronDown, Leaf, Truck, Sprout, MapPin, Loader } from "lucide-react";
 import { motion } from "framer-motion";
+import bannerVideo from "../../../attached_assets/banner.mp4";
 import type {
   Product,
   Farmer,
@@ -36,6 +37,7 @@ import type {
 import { Loader2 } from "lucide-react";
 import farmerImage from "../../../public/pic1.jpg";
 import farmerImage2 from "../../../public/pic2.jpg";
+import farmerImage3 from "../../../attached_assets/pic1.webp";
 import { formatSnakeCase } from "@/utils/formatSnakeCase";
 const newsletterSchema = z.object({
   name: z.string().optional(),
@@ -53,6 +55,7 @@ export default function Home() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<number | null>(
     null
   );
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
   const storyRef = useRef(null);
   const scrollToStory = () => {
     storyRef.current.scrollIntoView({ behavior: "smooth" });
@@ -860,7 +863,96 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <section id="video" className="py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-8 lg:px-8">
+          <>
+            <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-xl overflow-hidden scroll-animation">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center p-10">
+                {/* Left: Text */}
+                <div className="order-2 md:order-1 scroll-animation">
+                  <h3 className="font-heading text-forest text-xl sm:text-2xl md:text-3xl font-semibold mb-4">
+                    Quality You Can Feel, Trust You Can Taste
+                  </h3>
+                  <p className="text-olive mb-4">
+                    We don’t spend on big ads—we spend on quality. Every product
+                    we bring to your table is made with care, honesty, and
+                    purpose.
+                  </p>
+                  <p className="text-olive mb-6">
+                    You, our customer, are our greatest ambassador. When you
+                    share our story, you help us grow—naturally, beautifully.
+                  </p>
+                  <p className="text-olive mb-6">
+                    Thank you for choosing us. Let’s build something real,
+                    together.
+                  </p>
+                  <Link href="/our-process">
+                    <Button className="bg-primary hover:bg-primary-dark text-white font-semibold transition duration-300">
+                      Learn About Our Process
+                    </Button>
+                  </Link>
+                </div>
 
+                {/* Right: Video Thumbnail */}
+                <div className="order-1 md:order-2 scroll-animation">
+                  <div
+                    className="relative cursor-pointer group rounded-lg shadow-xl overflow-hidden"
+                    onClick={() => setIsVideoOpen(true)}
+                  >
+                    <img
+                      src={farmerImage3}
+                      alt="Video thumbnail"
+                      className="w-full h-auto"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 group-hover:bg-opacity-40 transition">
+                      <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-8 h-8 text-white"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Video Modal */}
+            {isVideoOpen && (
+              <div
+                className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
+                onClick={() => setIsVideoOpen(false)} // Close on overlay click
+              >
+                <div
+                  className="relative bg-white rounded-lg shadow-lg max-w-3xl w-full mx-4"
+                  onClick={(e) => e.stopPropagation()} // Prevent close on iframe click
+                >
+                  <button
+                    onClick={() => setIsVideoOpen(false)}
+                    className="absolute top-3 right-5 text-black hover:text-red-500"
+                  >
+                    ✕
+                  </button>
+                  <div className="relative pb-[56.25%] h-0 overflow-hidden rounded-lg">
+                    <iframe
+                      className="absolute top-0 left-0 w-full h-full"
+                      src={bannerVideo}
+                      title="Video"
+                      frameBorder="0"
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        </div>
+      </section>
       {/* Newsletter Section */}
       <section id="contact" className="py-16 md:py-24 bg-background">
         <div className="container mx-auto px-4 lg:px-8">
