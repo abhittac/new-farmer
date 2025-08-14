@@ -477,6 +477,15 @@ export default function EnhancedAdminProducts() {
 
   // Set up form for editing
   const setupEditForm = (product: EnhancedProduct) => {
+    // First, find the category to get its subcategories
+    const selectedCategory = mainCategories.find(
+      (cat) => cat.name === product.category
+    );
+    if (selectedCategory) {
+      setSelectedCategoryId(selectedCategory.id);
+      fetchSubcategories(selectedCategory.id);
+    }
+
     form.reset({
       name: product.name,
       shortDescription:
@@ -484,6 +493,7 @@ export default function EnhancedAdminProducts() {
       description: product.description,
 
       category: product.category,
+      subcategory: product.subcategory || "",
 
       variants: product.variants?.length
         ? product.variants.map((v) => ({
@@ -1016,7 +1026,7 @@ export default function EnhancedAdminProducts() {
                               field.onChange(value);
                               handleCategoryChange(value);
                             }}
-                            defaultValue={field.value}
+                            value={field.value}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -1047,7 +1057,7 @@ export default function EnhancedAdminProducts() {
                           <FormLabel>Subcategory (Optional)</FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
+                            value={field.value}
                             disabled={subcategories.length === 0}
                           >
                             <FormControl>

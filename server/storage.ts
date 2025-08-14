@@ -1120,39 +1120,9 @@ export class DatabaseStorage implements IStorage {
     productId: number,
     variantId?: number
   ): Promise<boolean> {
-    // Check if user has already reviewed this product variant (if variantId provided)
-    const existingReviewsQuery = db
-      .select()
-      .from(productReviews)
-      .where(
-        and(
-          eq(productReviews.userId, userId),
-          eq(productReviews.productId, productId),
-          variantId ? eq(productReviews.variantId, variantId) : sql`TRUE`
-        )
-      );
-
-    const existingReviews = await existingReviewsQuery;
-
-    if (existingReviews.length > 0) return false;
-
-    // Check if user has purchased this product (and variant if provided) in delivered order
-    const deliveredOrdersQuery = db
-      .select({ orderId: orders.id })
-      .from(orders)
-      .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
-      .where(
-        and(
-          eq(orders.userId, userId),
-          eq(orders.status, "delivered"),
-          eq(orderItems.productId, productId),
-          variantId ? eq(orderItems.variantId, variantId) : sql`TRUE`
-        )
-      );
-
-    const deliveredOrders = await deliveredOrdersQuery;
-
-    return deliveredOrders.length > 0;
+    // Allow all logged-in users to review products multiple times
+    // This enables users to update their reviews or add new ones
+    return userId > 0; // Simple check to ensure user is logged in
   }
 
   async getUserProductReviews(userId: number): Promise<ProductReview[]> {
