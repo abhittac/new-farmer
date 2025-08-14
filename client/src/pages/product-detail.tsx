@@ -150,9 +150,16 @@ export default function ProductDetail() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <span className="bg-secondary/20 text-secondary-dark px-3 py-1 rounded-full text-sm font-semibold">
-                {product?.category || "Product"}{product?.subcategory ? ` > ${product.subcategory}` : ""}
-              </span>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <span className="bg-primary/20 text-primary px-3 py-1 rounded-full text-sm font-semibold">
+                  {product?.category || "Product"}
+                </span>
+                {product?.subcategory && (
+                  <span className="bg-accent/20 text-accent-foreground px-3 py-1 rounded-full text-sm font-medium">
+                    {product.subcategory}
+                  </span>
+                )}
+              </div>
               <h1 className="font-heading text-forest text-3xl md:text-4xl font-bold mt-3 mb-4">
                 {product?.name || "Product Name"}
               </h1>

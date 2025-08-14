@@ -323,11 +323,11 @@ export const productReviews = pgTable("product_reviews", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").notNull(),
   userId: integer("user_id").notNull(),
-  orderId: integer("order_id").notNull(),
+  orderId: integer("order_id"), // nullable for general reviews not tied to orders
   customerName: text("customer_name").notNull(),
   rating: doublePrecision("rating").notNull(),
   reviewText: text("review_text").notNull(),
-  variantId: integer("variant_id").notNull(),
+  variantId: integer("variant_id"), // nullable for general product reviews
   verified: boolean("verified").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/context/AuthContext";
 import { Star, StarHalf } from "lucide-react";
 
 // Review schema for validation
@@ -15,7 +16,10 @@ const reviewSchema = z.object({
   productId: z.number(),
   rating: z.number().min(1, "Please select a rating").max(5),
   reviewText: z.string().min(10, "Review must be at least 10 characters long"),
-  customerName: z.string().min(1, "Customer name is required"),
+  customerName: z.string()
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name must be less than 50 characters")
+    .regex(/^[A-Za-z]+(\s[A-Za-z])?(\s[A-Za-z]+)*$/, "Invalid name format. Last name can be a single character."),
 });
 
 // Type definition for our form
@@ -30,14 +34,13 @@ export default function ProductReviewSystem({ productId }: ProductReviewSystemPr
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get the current user ID from the session or local storage
-  // In a real app, this would come from your auth context
-  const userId = 1; // Placeholder, replace with actual user ID
+  // Get the current user from auth context
+  const { user } = useAuth();
 
   // Check if the user can review this product (if they've purchased and received it)
   const { data: canReview, isLoading: checkingEligibility } = useQuery({
     queryKey: [`/api/products/${productId}/can-review`],
-    enabled: !!productId && !!userId,
+    enabled: !!productId && !!user?.id,
   });
 
   // Fetch existing reviews for this product
@@ -57,11 +60,11 @@ export default function ProductReviewSystem({ productId }: ProductReviewSystemPr
   } = useForm({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
-      userId: userId,
+      userId: user?.id || 0,
       productId: productId,
       rating: 0,
       reviewText: "",
-      customerName: "",
+      customerName: user?.name || "",
     }
   });
 
@@ -124,7 +127,7 @@ export default function ProductReviewSystem({ productId }: ProductReviewSystemPr
     // Ensure the data includes the user ID and product ID
     const reviewData = {
       ...data,
-      userId: userId,
+      userId: user?.id || 0,
       productId: productId
     };
     mutation.mutate(reviewData as ReviewFormData);

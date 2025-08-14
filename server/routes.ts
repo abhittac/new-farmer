@@ -459,10 +459,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productId,
       };
 
+      console.log('Review submission request:', reviewData);
       const newReview = await storage.addProductReview(reviewData);
       res.status(201).json(newReview);
     } catch (error) {
-      res.status(500).json({ message: "Failed to add product review" });
+      console.error('Error adding product review:', error);
+      res.status(500).json({ message: "Failed to add product review", error: error.message });
     }
   });
 
