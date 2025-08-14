@@ -227,16 +227,16 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <h1 className="font-heading text-white text-4xl md:text-5xl lg:text-7xl font-bold mb-4 leading-tight text-shadow-extra-strong">
+              <h1 className="font-heading text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 leading-tight text-shadow-extra-strong">
                 From <span className="text-secondary font-extrabold">Soil</span>{" "}
                 to <span className="text-secondary font-extrabold">Soul</span>
               </h1>
 
-              <h2 className="font-heading text-white text-2xl md:text-3xl lg:text-4xl font-semibold mb-6 text-shadow-extra-strong">
+              <h2 className="font-heading text-white text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mb-6 text-shadow-extra-strong">
                 Pure Nature, Direct to Your Table
               </h2>
 
-              <p className="text-white text-lg max-w-xl mb-8 text-shadow-extra-strong">
+              <p className="text-white text-base sm:text-lg max-w-xl mb-8 text-shadow-extra-strong">
                 Experience the authentic flavors of traditionally grown,
                 chemical-free products sourced directly from the farmers who
                 nurture them with generations of wisdom.
@@ -334,10 +334,10 @@ export default function Home() {
       >
         <div className="container mx-auto px-4 lg:px-8">
           <div className="max-w-3xl mx-auto text-center mb-16 scroll-animation">
-            <h2 className="font-heading text-forest text-3xl md:text-4xl font-bold mb-6">
+            <h2 className="font-heading text-forest text-2xl sm:text-3xl md:text-4xl font-bold mb-6">
               Our Story
             </h2>
-            <p className="text-olive text-lg">
+            <p className="text-olive text-base sm:text-lg">
               We connect you directly with farmers who've dedicated their lives
               to growing the purest, most flavorful products using sustainable,
               traditional methods.
@@ -353,7 +353,7 @@ export default function Home() {
               />
             </div>
             <div className="scroll-animation">
-              <h3 className="font-heading text-forest text-2xl md:text-3xl font-semibold mb-4">
+              <h3 className="font-heading text-forest text-xl sm:text-2xl md:text-3xl font-semibold mb-4">
                 Celebrating Our Farmers
               </h3>
               <p className="text-olive mb-4">
@@ -398,7 +398,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center ">
             <div className="order-2 md:order-1 scroll-animation">
-              <h3 className="font-heading text-forest text-2xl md:text-3xl font-semibold mb-4">
+              <h3 className="font-heading text-forest text-xl sm:text-2xl md:text-3xl font-semibold mb-4">
                 From Soil to Soul
               </h3>
               <p className="text-olive mb-4">
@@ -432,10 +432,10 @@ export default function Home() {
       <section id="products" className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="max-w-3xl mx-auto text-center mb-12 scroll-animation">
-            <h2 className="font-heading text-forest text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="font-heading text-forest text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
               Our Products
             </h2>
-            <p className="text-olive text-lg">
+            <p className="text-olive text-base sm:text-lg">
               Explore our collection of premium farm-fresh products, each grown
               with care and harvested at peak ripeness.
             </p>

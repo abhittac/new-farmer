@@ -159,7 +159,7 @@ export default function ProductDetail() {
                   <Badge variant="secondary">{product.subcategory}</Badge>
                 )}
               </div>
-              <h1 className="font-heading text-forest text-3xl md:text-4xl font-bold mt-3 mb-4">
+              <h1 className="font-heading text-forest text-2xl sm:text-3xl md:text-4xl font-bold mt-3 mb-4">
                 {product?.name || "Product Name"}
               </h1>
 
@@ -173,7 +173,7 @@ export default function ProductDetail() {
                 />
               </div>
 
-              <p className="text-olive text-lg mb-6">
+              <p className="text-olive text-base sm:text-lg mb-6">
                 {product?.description ||
                   "This premium product is grown using traditional methods by our partner farmers, ensuring exceptional quality and authentic flavor."}
               </p>

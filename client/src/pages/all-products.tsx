@@ -528,10 +528,10 @@ export default function AllProducts() {
     <div className="bg-background pt-32 pb-16 min-h-screen">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h1 className="font-heading text-forest text-4xl font-bold mb-4">
+          <h1 className="font-heading text-forest text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
             Our Products
           </h1>
-          <p className="text-olive text-lg max-w-2xl mx-auto">
+          <p className="text-olive text-base sm:text-lg max-w-2xl mx-auto">
             Explore our complete collection of farm-fresh products, each grown
             with care using traditional methods. Filter by category to find
             exactly what you're looking for.

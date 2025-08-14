@@ -113,13 +113,13 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
 
           {/* ⭐ Product Name */}
-          <h3 className="text-lg font-semibold text-gray-800 truncate">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-800 truncate">
             {product.name}
           </h3>
 
           {/* ⭐ Short Description */}
           {product.shortDescription && (
-            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+            <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
               {product.shortDescription}
             </p>
           )}

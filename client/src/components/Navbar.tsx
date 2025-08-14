@@ -115,20 +115,22 @@ export default function Navbar() {
               <Search className="h-5 w-5" />
             </Button>
             
-            {/* Cart Icon - Always visible on desktop and mobile */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={openCart}
-              className="text-forest hover:text-primary hover:bg-transparent relative"
-            >
-              <ShoppingBasket className="h-5 w-5" />
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {totalItems}
-                </span>
-              )}
-            </Button>
+            {/* Cart Icon - Only visible when user is logged in */}
+            {isAuthenticated && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={openCart}
+                className="text-forest hover:text-primary hover:bg-transparent relative"
+              >
+                <ShoppingBasket className="h-5 w-5" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
+              </Button>
+            )}
             
             {/* Auth Links - Desktop */}
             <div className="hidden lg:flex items-center space-x-4">
@@ -197,24 +199,26 @@ export default function Navbar() {
                 </Link>
               ))}
 
-              {/* Cart in Mobile Menu */}
-              <button
-                onClick={() => {
-                  openCart();
-                  setShowMobileMenu(false);
-                }}
-                className="text-forest hover:text-primary font-medium py-2 transition duration-200 w-full text-left flex items-center justify-between"
-              >
-                <span className="flex items-center">
-                  <ShoppingBasket className="mr-2 h-4 w-4" />
-                  Cart
-                </span>
-                {totalItems > 0 && (
-                  <span className="bg-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {totalItems}
+              {/* Cart in Mobile Menu - Only visible when user is logged in */}
+              {isAuthenticated && (
+                <button
+                  onClick={() => {
+                    openCart();
+                    setShowMobileMenu(false);
+                  }}
+                  className="text-forest hover:text-primary font-medium py-2 transition duration-200 w-full text-left flex items-center justify-between"
+                >
+                  <span className="flex items-center">
+                    <ShoppingBasket className="mr-2 h-4 w-4" />
+                    Cart
                   </span>
-                )}
-              </button>
+                  {totalItems > 0 && (
+                    <span className="bg-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {totalItems}
+                    </span>
+                  )}
+                </button>
+              )}
 
               {/* Auth Links - Mobile */}
               <div className="pt-2 border-t border-border/30">
