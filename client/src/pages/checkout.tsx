@@ -37,7 +37,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 const createFormSchema = (codEnabled: boolean) =>
   z.object({
     firstName: z.string().min(2, "First name is required"),
-    lastName: z.string().min(2, "Last name is required"),
+    lastName: z.string().min(1, "Last name is required"),
     email: z.string().email("Please enter a valid email address"),
     phone: z.string().min(10, "Please enter a valid phone number"),
     address: z.string().min(5, "Address is required"),
