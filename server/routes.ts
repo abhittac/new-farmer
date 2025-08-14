@@ -8,6 +8,7 @@ import * as crypto from "crypto";
 import * as nodemailer from "nodemailer";
 import Razorpay from "razorpay";
 import { emailService } from "./emailService";
+import { indiaPostService } from "./indiaPostApi";
 
 import { smsService } from "./smsService";
 import {
@@ -2957,6 +2958,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     console.log("Email service initialized");
   }
+
+  // India Post API Routes
+  
+  // Validate pincode
+  app.get(`${apiPrefix}/shipping/validate-pincode/:pincode`, async (req, res) => {
+    try {
+      const { pincode } = req.params;
+      
+      if (!/^\d{6}$/.test(pincode)) {
+        return res.status(400).json({ 
+          message: "Invalid pincode format. Must be 6 digits." 
+        });
+      }
+
+      const pincodeInfo = await indiaPostService.validatePincode(pincode);
+      
+      if (pincodeInfo) {
+        res.json({
+          success: true,
+          data: pincodeInfo
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: "Pincode not found"
+        });
+      }
+    } catch (error) {
+      console.error('Pincode validation error:', error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to validate pincode"
+      });
+    }
+  });
+
+  // Calculate shipping rates
+  app.post(`${apiPrefix}/shipping/calculate-rates`, async (req, res) => {
+    try {
+      const { fromPincode, toPincode, weight, codAmount } = req.body;
+      
+      if (!fromPincode || !toPincode || !weight) {
+        return res.status(400).json({
+          message: "Missing required fields: fromPincode, toPincode, weight"
+        });
+      }
+
+      if (!/^\d{6}$/.test(fromPincode) || !/^\d{6}$/.test(toPincode)) {
+        return res.status(400).json({
+          message: "Invalid pincode format. Must be 6 digits."
+        });
+      }
+
+      if (weight <= 0) {
+        return res.status(400).json({
+          message: "Weight must be greater than 0"
+        });
+      }
+
+      const rates = await indiaPostService.calculateShippingRates(
+        fromPincode, 
+        toPincode, 
+        weight, 
+        codAmount
+      );
+      
+      res.json({
+        success: true,
+        rates
+      });
+    } catch (error) {
+      console.error('Shipping rate calculation error:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to calculate shipping rates"
+      });
+    }
+  });
+
+  // Generate shipping label
+  app.post(`${apiPrefix}/shipping/generate-label`, authenticate, async (req, res) => {
+    try {
+      const { fromAddress, toAddress, weight, service, codAmount } = req.body;
+      
+      if (!fromAddress || !toAddress || !weight || !service) {
+        return res.status(400).json({
+          message: "Missing required fields: fromAddress, toAddress, weight, service"
+        });
+      }
+
+      const trackingNumber = await indiaPostService.generateShippingLabel({
+        fromAddress,
+        toAddress,
+        weight,
+        service,
+        codAmount
+      });
+      
+      res.json({
+        success: true,
+        trackingNumber,
+        message: "Shipping label generated successfully"
+      });
+    } catch (error) {
+      console.error('Label generation error:', error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to generate shipping label"
+      });
+    }
+  });
+
+  // Track shipment
+  app.get(`${apiPrefix}/shipping/track/:trackingNumber`, async (req, res) => {
+    try {
+      const { trackingNumber } = req.params;
+      
+      if (!trackingNumber) {
+        return res.status(400).json({
+          message: "Tracking number is required"
+        });
+      }
+
+      const trackingInfo = await indiaPostService.trackShipment(trackingNumber);
+      
+      if (trackingInfo) {
+        res.json({
+          success: true,
+          data: trackingInfo
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: "Tracking information not found"
+        });
+      }
+    } catch (error) {
+      console.error('Shipment tracking error:', error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to track shipment"
+      });
+    }
+  });
 
   const httpServer = createServer(app);
 

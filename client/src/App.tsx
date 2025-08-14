@@ -23,6 +23,7 @@ import FAQs from "@/pages/faqs";
 import ShippingReturns from "@/pages/shipping-returns";
 import TrackOrder from "@/pages/track-order";
 import PrivacyPolicy from "@/pages/privacy-policy";
+import Shipping from "@/pages/shipping";
 
 // Admin Pages
 import AdminLogin from "@/pages/admin/login";
@@ -83,6 +84,7 @@ function App() {
                           path="/shipping-returns"
                           component={ShippingReturns}
                         />
+                        <Route path="/shipping" component={Shipping} />
                         <Route path="/track-order" component={TrackOrder} />
                         <Route
                           path="/privacy-policy"

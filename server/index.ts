@@ -97,13 +97,20 @@ app.use(morgan("dev"));
   const dbConnected = await testDatabaseConnection();
 
   if (dbConnected) {
-    // Initialize database with seed data
-    try {
-      // await initializeDatabase();
-      log("Database initialized successfully with seed data");
-    } catch (error) {
-      log("Error initializing database: " + error);
-      // Continue without database initialization if it fails
+    // Only initialize database with seed data in development mode
+    // Skip seed data in production to preserve real user data
+    const isProduction = process.env.DATABASE_URL?.includes('neon.tech') || 
+                        process.env.NODE_ENV === 'production';
+    
+    if (!isProduction && process.env.NODE_ENV === 'development') {
+      try {
+        await initializeDatabase();
+        log("Database initialized successfully with seed data");
+      } catch (error) {
+        log("Error initializing database: " + error);
+      }
+    } else {
+      log("Production environment detected - skipping seed data initialization");
     }
   } else {
     log(
