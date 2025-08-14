@@ -867,9 +867,13 @@ export default function Account() {
                                     </h4>
                                     <p className="text-sm text-gray-600">
                                       Quantity: {item.quantity} • Price: ₹
-                                      {item.price.toFixed(2)} • Variant:
-                                      {item.variant.quantity}
-                                      {formatSnakeCase(item.variant.unit!)}
+                                      {item.price.toFixed(2)}
+                                      {item.variant && (
+                                        <>
+                                          {" "}• Variant: {item.variant.quantity}
+                                          {formatSnakeCase(item.variant.unit!)}
+                                        </>
+                                      )}
                                     </p>
                                   </div>
                                   <div className="flex items-center space-x-2">
