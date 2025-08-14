@@ -6,6 +6,7 @@ import { AddToCartButton } from "@/components/ui/add-to-cart-button";
 import { RatingDisplay } from "@/components/ui/rating-display";
 import { Separator } from "@/components/ui/separator";
 import { MapPin, Leaf, Shield, Award, ChevronLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ParallaxSection } from "@/components/ui/parallax-section";
 import { ProductGallery } from "@/components/ui/product-gallery";
@@ -242,7 +243,7 @@ export default function ProductDetail() {
                         ((selectedVariant.price -
                           selectedVariant.discountPrice) /
                           selectedVariant.price) *
-                          100
+                          100,
                       )}
                       % OFF
                     </span>
@@ -257,7 +258,7 @@ export default function ProductDetail() {
                     {selectedVariant
                       ? formatUnit(
                           selectedVariant.unit,
-                          selectedVariant.quantity
+                          selectedVariant.quantity,
                         )
                       : formatUnit(product?.unit, product?.quantity)}
                   </span>

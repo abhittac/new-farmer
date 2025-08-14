@@ -774,7 +774,7 @@ export default function EnhancedAdminProducts() {
                   <TableRow>
                     <TableHead>Product</TableHead>
                     <TableHead>Category</TableHead>
-
+                    <TableHead>Subcategory</TableHead>
                     <TableHead>Attributes</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -783,7 +783,7 @@ export default function EnhancedAdminProducts() {
                 <TableBody>
                   {filteredProducts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-4">
+                      <TableCell colSpan={6} className="text-center py-4">
                         No products found
                       </TableCell>
                     </TableRow>
@@ -829,6 +829,13 @@ export default function EnhancedAdminProducts() {
                         {/* Category */}
                         <TableCell className="w-[150px]">
                           {product.category}
+                        </TableCell>
+
+                        {/* Subcategory */}
+                        <TableCell className="w-[150px]">
+                          {product.subcategory || (
+                            <span className="text-muted-foreground italic">No subcategory</span>
+                          )}
                         </TableCell>
 
                         {/* Attributes */}
