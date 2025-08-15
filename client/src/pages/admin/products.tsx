@@ -358,13 +358,15 @@ export default function AdminProducts() {
 
   // Handle image removal
   const handleImageRemove = (imagePath: string) => {
-    setUploadedImages((prev) => prev.filter((img) => img !== imagePath));
-    if (uploadedImages.length === 1) {
-      form.setValue("imageUrl", "");
-    } else {
-      const remainingImages = uploadedImages.filter((img) => img !== imagePath);
-      form.setValue("imageUrl", remainingImages[0] || "");
-    }
+    setUploadedImages((prev) => {
+      const newImages = prev.filter((img) => img !== imagePath);
+      if (newImages.length === 0) {
+        form.setValue("imageUrl", "");
+      } else {
+        form.setValue("imageUrl", newImages[0]);
+      }
+      return newImages;
+    });
   };
 
   // Handle form submission for creating/editing
