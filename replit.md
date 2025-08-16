@@ -64,10 +64,10 @@ Core frontend components include pages for Home, Product Detail, All Products, A
 ## Recent Updates (August 16, 2025)
 
 ### Category and Subcategory Validation System (Latest)
-- **Simplified Validation**: Only prevents exact duplicate category names (case-insensitive)
-- **Category Uniqueness**: Only categories must have unique names among other categories
-- **Subcategory Uniqueness**: Only subcategories must have unique names within their parent category
-- **Flexible Naming**: "Rice Powder" allowed even if "Powder" exists as category/subcategory
+- **Separate Entity Validation**: Categories and subcategories are treated as completely separate entities
+- **Category Uniqueness**: Only prevents duplicate names among main categories (case-insensitive)
+- **Subcategory Uniqueness**: Only prevents duplicate names within their parent category (case-insensitive)
+- **Cross-Type Flexibility**: "Powder" can exist as both a category AND a subcategory simultaneously
 - **Usage Protection**: Categories/subcategories cannot be deleted if used by products
 - **Enhanced Deletion Errors**: Shows detailed table with product name, image, category, and subcategory when deletion blocked
 - **Product Deletion Fix**: Resolved "No variants found" error, products can now be deleted without variants

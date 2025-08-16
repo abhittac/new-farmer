@@ -2636,7 +2636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         categoryData.slug = generateSlug(categoryData.name);
       }
 
-      // Check for duplicate category name (exact match only)
+      // Check for duplicate category name among main categories only (exact match only)
       const existingCategories = await storage.getAllCategories();
       const mainCategories = existingCategories.filter(cat => !cat.parentId);
       const duplicateName = mainCategories.find(cat => 
@@ -2688,7 +2688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.slug = generateSlug(updateData.name);
       }
 
-      // Check for duplicate category name if name is being updated (exact match only)
+      // Check for duplicate category name among main categories only if name is being updated (exact match only)
       if (updateData.name) {
         const existingCategories = await storage.getAllCategories();
         const mainCategories = existingCategories.filter(cat => !cat.parentId);
