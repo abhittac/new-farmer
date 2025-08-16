@@ -64,10 +64,11 @@ Core frontend components include pages for Home, Product Detail, All Products, A
 ## Recent Updates (August 16, 2025)
 
 ### Category and Subcategory Validation System (Latest)
-- **Simplified Validation Logic**: Categories must be globally unique, subcategories only unique within their parent
-- **Cross-Category Flexibility**: Different categories can have subcategories with same names (e.g., Coffee→Raw, Tea→Raw, Spices→Raw)
+- **Name-Based Validation**: All validation is based on category/subcategory names, not slugs
+- **Global Name Uniqueness**: All category and subcategory names must be globally unique across the entire system
+- **Usage Protection**: Categories/subcategories cannot be deleted if they're being used by products (displays count of affected products)
 - **Case-Insensitive Checking**: Prevents duplicates regardless of capitalization
-- **Clear Error Messages**: Shows exactly which existing category/subcategory conflicts
+- **Clear Error Messages**: Shows exactly which existing category/subcategory conflicts and whether it's a main category or subcategory
 - **Product Deletion Fix**: Resolved "No variants found" error, products can now be deleted without variants
 - **VITE_BASE_URL Integration**: Completed image URL handling across all platform components
 

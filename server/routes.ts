@@ -2636,16 +2636,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         categoryData.slug = generateSlug(categoryData.name);
       }
 
-      // Check for duplicate category name (categories must be globally unique)
+      // Check for duplicate names across ALL categories and subcategories (names must be globally unique)
       const existingCategories = await storage.getAllCategories();
-      const mainCategories = existingCategories.filter(cat => !cat.parentId);
-      const duplicateName = mainCategories.find(cat => 
+      const duplicateName = existingCategories.find(cat => 
         cat.name.toLowerCase() === categoryData.name.toLowerCase()
       );
       
       if (duplicateName) {
         return res.status(400).json({ 
-          message: `A category named "${duplicateName.name}" already exists. Please choose a different name.`,
+          message: `Cannot create category "${categoryData.name}" because a ${duplicateName.parentId ? 'subcategory' : 'category'} with this name already exists: "${duplicateName.name}". Please choose a different name.`,
           field: "name",
           existingCategory: duplicateName.name
         });
@@ -2688,17 +2687,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.slug = generateSlug(updateData.name);
       }
 
-      // Check for duplicate category name if name is being updated
+      // Check for duplicate names across ALL categories and subcategories if name is being updated
       if (updateData.name) {
         const existingCategories = await storage.getAllCategories();
-        const mainCategories = existingCategories.filter(cat => !cat.parentId);
-        const duplicateName = mainCategories.find(cat => 
+        const duplicateName = existingCategories.find(cat => 
           cat.name.toLowerCase() === updateData.name.toLowerCase() && cat.id !== categoryId
         );
         
         if (duplicateName) {
           return res.status(400).json({ 
-            message: `A category named "${duplicateName.name}" already exists. Please choose a different name.`,
+            message: `Cannot update category to "${updateData.name}" because a ${duplicateName.parentId ? 'subcategory' : 'category'} with this name already exists: "${duplicateName.name}". Please choose a different name.`,
             field: "name",
             existingCategory: duplicateName.name
           });
@@ -2821,15 +2819,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           subcategoryData.slug = generateSlug(subcategoryData.name);
         }
 
-        // Check for duplicate subcategory name within the same parent category
-        const existingSubcategories = await storage.getSubcategoriesByParent(parentId);
-        const duplicateName = existingSubcategories.find(sub => 
-          sub.name.toLowerCase() === subcategoryData.name.toLowerCase()
+        // Check for duplicate names across ALL categories and subcategories  
+        const allCategories = await storage.getAllCategories();
+        const duplicateName = allCategories.find(cat => 
+          cat.name.toLowerCase() === subcategoryData.name.toLowerCase()
         );
         
         if (duplicateName) {
           return res.status(400).json({ 
-            message: `A subcategory named "${duplicateName.name}" already exists in this category. Please choose a different name.`,
+            message: `Cannot create subcategory "${subcategoryData.name}" because a ${duplicateName.parentId ? 'subcategory' : 'category'} with this name already exists: "${duplicateName.name}". Please choose a different name.`,
             field: "name",
             existingCategory: duplicateName.name
           });
@@ -2877,21 +2875,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.slug = generateSlug(updateData.name);
       }
 
-      // Check for duplicate subcategory name within the same parent if name is being updated
+      // Check for duplicate names across ALL categories and subcategories if name is being updated
       if (updateData.name) {
         const subcategory = await storage.getCategoryById(subcategoryId);
         if (!subcategory || !subcategory.parentId) {
           return res.status(404).json({ message: "Subcategory not found" });
         }
         
-        const existingSubcategories = await storage.getSubcategoriesByParent(subcategory.parentId);
-        const duplicateName = existingSubcategories.find(sub => 
-          sub.name.toLowerCase() === updateData.name.toLowerCase() && sub.id !== subcategoryId
+        const allCategories = await storage.getAllCategories();
+        const duplicateName = allCategories.find(cat => 
+          cat.name.toLowerCase() === updateData.name.toLowerCase() && cat.id !== subcategoryId
         );
         
         if (duplicateName) {
           return res.status(400).json({ 
-            message: `A subcategory named "${duplicateName.name}" already exists in this category. Please choose a different name.`,
+            message: `Cannot update subcategory to "${updateData.name}" because a ${duplicateName.parentId ? 'subcategory' : 'category'} with this name already exists: "${duplicateName.name}". Please choose a different name.`,
             field: "name",
             existingCategory: duplicateName.name
           });
