@@ -196,6 +196,8 @@ export default function EnhancedAdminProducts() {
   const [isImageGalleryOpen, setIsImageGalleryOpen] = useState(false);
   const [isDeletionErrorDialogOpen, setIsDeletionErrorDialogOpen] = useState(false);
   const [deletionError, setDeletionError] = useState<any>(null);
+  const [isVariantDeletionDialogOpen, setIsVariantDeletionDialogOpen] = useState(false);
+  const [variantToDelete, setVariantToDelete] = useState<{index: number, variant: any} | null>(null);
   const productsPerPage = 5;
   const { toast } = useToast();
 
@@ -735,6 +737,67 @@ export default function EnhancedAdminProducts() {
           err instanceof Error ? err.message : "Failed to save product",
         variant: "destructive",
       });
+    }
+  };
+
+  // Handle variant deletion with order checking
+  const handleVariantDelete = async (index: number, variant: any) => {
+    // If it's a new variant (no ID), just remove it locally
+    if (!variant.id) {
+      remove(index);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const response = await fetch(`/api/admin/variants/${variant.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        // Check if it's a deletion restriction error
+        if (response.status === 400 && responseData.orderIds) {
+          setDeletionError({
+            ...responseData,
+            pendingVariantSkus: [variant.sku],
+          });
+          setIsDeletionErrorDialogOpen(true);
+          return;
+        }
+        throw new Error(responseData.message || "Failed to delete variant");
+      }
+
+      // Remove variant from form array if deletion was successful
+      remove(index);
+      
+      toast({
+        title: "Variant deleted",
+        description: "The variant has been deleted successfully.",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to delete variant",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle variant deletion confirmation
+  const confirmVariantDeletion = () => {
+    if (variantToDelete) {
+      handleVariantDelete(variantToDelete.index, variantToDelete.variant);
+      setIsVariantDeletionDialogOpen(false);
+      setVariantToDelete(null);
     }
   };
 
@@ -1356,7 +1419,20 @@ export default function EnhancedAdminProducts() {
                             type="button"
                             variant="destructive"
                             size="sm"
-                            onClick={() => remove(index)}
+                            onClick={() => {
+                              const currentVariant = form.getValues(`variants.${index}`);
+                              // If editing an existing product and variant has an ID, show confirmation
+                              if (productToEdit && currentVariant && productToEdit.variants?.[index]?.id) {
+                                setVariantToDelete({
+                                  index,
+                                  variant: productToEdit.variants[index]
+                                });
+                                setIsVariantDeletionDialogOpen(true);
+                              } else {
+                                // For new variants without ID, remove directly
+                                remove(index);
+                              }
+                            }}
                           >
                             Remove Variant
                           </Button>
@@ -1852,6 +1928,35 @@ export default function EnhancedAdminProducts() {
               onClick={() => setIsDeletionErrorDialogOpen(false)}
             >
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Variant Deletion Confirmation Dialog */}
+      <Dialog open={isVariantDeletionDialogOpen} onOpenChange={setIsVariantDeletionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Variant</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this variant (SKU: {variantToDelete?.variant?.sku})? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsVariantDeletionDialogOpen(false);
+                setVariantToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmVariantDeletion}
+            >
+              Delete Variant
             </Button>
           </DialogFooter>
         </DialogContent>

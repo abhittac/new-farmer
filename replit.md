@@ -61,7 +61,16 @@ Core frontend components include pages for Home, Product Detail, All Products, A
 - India Post API (for shipping and tracking services)
 - Razorpay (for payment processing)
 
-## Recent Updates (August 15, 2025)
+## Recent Updates (August 16, 2025)
+
+### Enhanced Product Management Improvements
+- **Variant Management**: Fixed "Remove Variant" button to only show when multiple variants exist
+- **Form Validation**: Fixed discount price validation to properly handle empty/null values with improved preprocessing
+- **Deletion Safety**: Implemented proper deletion error modal with table format showing SKU and Order columns
+- **Variant Deletion**: Added variant-specific deletion checking with order validation using existing `/api/admin/variants/:id` endpoint
+- **User Experience**: Enhanced error messages and confirmation dialogs for both product and variant deletion
+
+### Previous Updates (August 15, 2025)
 
 ### Migration Completion
 - **Replit Agent to Replit Migration**: Successfully migrated project from Replit Agent to standard Replit environment
