@@ -326,7 +326,7 @@ export default function OrderHistory() {
                     <div className="flex items-center gap-2">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                          order.status
+                          order.status,
                         )}`}
                       >
                         {order.status.toUpperCase()}
@@ -552,12 +552,12 @@ export default function OrderHistory() {
                                 )}
                                 <div className="text-sm text-gray-600">
                                   <div>
-                                    Quantity: {item.quantity} × ₹{item.price.toFixed(2)}
+                                    Quantity: {item.quantity} × ₹
+                                    {item.price.toFixed(2)}
                                   </div>
                                   <div>
-                                    Variant: {item.quantity} {item.unit === "pcs" && item.quantity === 1
-                                    ? "Piece"
-                                    : formatSnakeCase(item.unit!)}
+                                    Variant: {item.quantity}{" "}
+                                    {formatSnakeCase(item.unit!)}
                                   </div>
                                 </div>
                               </div>
@@ -597,7 +597,7 @@ export default function OrderHistory() {
                         <p className="text-xs text-gray-500 mt-1">
                           Requested on:{" "}
                           {new Date(
-                            order.cancellationRequestedAt
+                            order.cancellationRequestedAt,
                           ).toLocaleString()}
                         </p>
                       </div>
@@ -612,7 +612,7 @@ export default function OrderHistory() {
                       <p className="text-xs text-gray-500 mt-1">
                         Rejected on:{" "}
                         {new Date(
-                          order.cancellationRejectedAt
+                          order.cancellationRejectedAt,
                         ).toLocaleString()}
                       </p>
                     </div>
