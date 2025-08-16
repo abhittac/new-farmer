@@ -59,12 +59,12 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
 ]);
 // ✅ Product Variants Input Schema (productId will be added later in code)
 export const insertProductVariantSchema = z.object({
-  price: z.number(),
-  discountPrice: z.union([z.number().int(), z.null()]).optional(),
-  quantity: z.number(),
-  unit: z.string(),
-  stockQuantity: z.number(),
-  sku: z.string(),
+  price: z.number().positive("Price must be greater than 0"),
+  discountPrice: z.number().int().min(0, "Discount price cannot be negative").default(0),
+  quantity: z.number().positive("Quantity must be greater than 0"),
+  unit: z.string().min(1, "Unit is required"),
+  stockQuantity: z.number().int().min(0, "Stock quantity cannot be negative"),
+  sku: z.string().min(1, "SKU is required").regex(/^[A-Z0-9-_]+$/i, "SKU can only contain letters, numbers, hyphens, and underscores"),
 });
 
 // ✅ Drizzle table for product variants
@@ -74,11 +74,11 @@ export const productVariants = pgTable("product_variants", {
     .notNull()
     .references(() => products.id, { onDelete: "cascade" }),
   price: doublePrecision("price").notNull(),
-  discountPrice: integer("discount_price"),
+  discountPrice: integer("discount_price").default(0),
   quantity: doublePrecision("quantity").notNull(),
   unit: text("unit").notNull(),
   stockQuantity: integer("stock_quantity").notNull().default(0),
-  sku: text("sku"),
+  sku: text("sku").notNull().unique(),
   isDeleted: boolean("is_deleted").default(false).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

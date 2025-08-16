@@ -10,7 +10,7 @@ import {
   insertProductVariantSchema,
   productVariants,
 } from "@shared/schema";
-import { eq, like, desc, asc, sql, and, inArray } from "drizzle-orm";
+import { eq, like, desc, asc, sql, and, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 
 // GET all products with pagination, sorting and filtering
@@ -296,9 +296,23 @@ export const createProduct = async (req: Request, res: Response) => {
     const parsedData = insertProductSchema.parse(req.body);
     const { variants, ...productBaseData } = parsedData;
 
-    // ✅ 2. Start transaction to insert product and variants
+    // ✅ 2. Check SKU uniqueness across all variants
+    const skus = variants.map(v => v.sku);
+    const existingSkus = await db
+      .select({ sku: productVariants.sku })
+      .from(productVariants)
+      .where(inArray(productVariants.sku, skus));
+    
+    if (existingSkus.length > 0) {
+      return res.status(400).json({
+        message: "SKU already exists",
+        errors: { sku: [`SKU ${existingSkus[0].sku} is already in use`] }
+      });
+    }
+
+    // ✅ 3. Start transaction to insert product and variants
     const newProductId = await db.transaction(async (tx) => {
-      // 2a. Insert product
+      // 3a. Insert product
       const [newProduct] = await tx
         .insert(products)
         .values({
@@ -307,14 +321,15 @@ export const createProduct = async (req: Request, res: Response) => {
         })
         .returning({ id: products.id });
 
-      // 2b. Defensive check (optional, tx.insert should always return)
+      // 3b. Defensive check (optional, tx.insert should always return)
       if (!newProduct?.id) {
         throw new Error("Failed to create product.");
       }
 
-      // 2c. Insert variants
+      // 3c. Insert variants with default discountPrice if not provided
       const variantsToInsert = variants.map((variant) => ({
         ...variant,
+        discountPrice: variant.discountPrice || 0,
         productId: newProduct.id,
       }));
 
@@ -360,6 +375,23 @@ export const updateProduct = async (req: Request, res: Response) => {
     // Validate request body (product + variants)
     const parsedData = insertProductSchema.parse(req.body);
     const { variants, ...productBaseData } = parsedData;
+
+    // Check SKU uniqueness for new/updated SKUs (excluding variants of this product)
+    const skus = variants.map(v => v.sku);
+    const existingSkus = await db
+      .select({ sku: productVariants.sku })
+      .from(productVariants)
+      .where(and(
+        inArray(productVariants.sku, skus),
+        ne(productVariants.productId, productId)
+      ));
+    
+    if (existingSkus.length > 0) {
+      return res.status(400).json({
+        message: "SKU already exists",
+        errors: { sku: [`SKU ${existingSkus[0].sku} is already in use`] }
+      });
+    }
 
     // Process product data
     const processedProductData = {
@@ -408,7 +440,7 @@ export const updateProduct = async (req: Request, res: Response) => {
           .update(productVariants)
           .set({
             price: variant.price,
-            discountPrice: variant.discountPrice,
+            discountPrice: variant.discountPrice || 0,
             quantity: variant.quantity,
             unit: variant.unit,
             stockQuantity: variant.stockQuantity,
@@ -424,6 +456,7 @@ export const updateProduct = async (req: Request, res: Response) => {
         await tx.insert(productVariants).values(
           newVariants.map((variant) => ({
             ...variant,
+            discountPrice: variant.discountPrice || 0,
             productId,
           }))
         );

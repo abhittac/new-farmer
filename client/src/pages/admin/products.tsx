@@ -87,6 +87,8 @@ const productFormSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   price: z.number().min(0.01, "Price must be greater than 0"),
+  discountPrice: z.number().min(0, "Discount price cannot be negative").default(0),
+  sku: z.string().min(1, "SKU is required").regex(/^[A-Z0-9-_]+$/i, "SKU can only contain letters, numbers, hyphens, and underscores"),
   category: z.string().min(1, "Please select a category"),
   stockQuantity: z.number().int().min(0, "Stock quantity must be 0 or greater"),
   imageUrl: z.string().min(1, "Please upload at least one image"),
@@ -119,6 +121,8 @@ export default function AdminProducts() {
       name: "",
       description: "",
       price: 0,
+      discountPrice: 0,
+      sku: "",
       category: "",
       stockQuantity: 0,
       imageUrl: "",
@@ -477,6 +481,7 @@ export default function AdminProducts() {
                 <Table className="border">
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Image</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Price</TableHead>
@@ -488,13 +493,28 @@ export default function AdminProducts() {
                   <TableBody>
                     {filteredProducts.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-4">
+                        <TableCell colSpan={7} className="text-center py-4">
                           No products found
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredProducts.map((product) => (
                         <TableRow key={product.id}>
+                          <TableCell>
+                            <div className="w-12 h-12 rounded-md overflow-hidden border">
+                              <img
+                                src={product.imageUrl?.startsWith('/') ? 
+                                  `/api/images/serve${product.imageUrl}` : 
+                                  product.imageUrl || "/public/uploads/products/no-profile.jpg"
+                                }
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = "/public/uploads/products/no-profile.jpg";
+                                }}
+                              />
+                            </div>
+                          </TableCell>
                           <TableCell className="font-medium">
                             {product.name}
                           </TableCell>
@@ -855,7 +875,26 @@ export default function AdminProducts() {
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="sku"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>SKU (Stock Keeping Unit)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="e.g., COFFEE-ARABICA-250G"
+                        style={{ textTransform: 'uppercase' }}
+                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="price"
