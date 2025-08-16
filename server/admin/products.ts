@@ -326,10 +326,10 @@ export const createProduct = async (req: Request, res: Response) => {
         throw new Error("Failed to create product.");
       }
 
-      // 3c. Insert variants with default discountPrice if not provided
+      // 3c. Insert variants with nullable discountPrice
       const variantsToInsert = variants.map((variant) => ({
         ...variant,
-        discountPrice: variant.discountPrice || 0,
+        discountPrice: variant.discountPrice ?? null,
         productId: newProduct.id,
       }));
 
@@ -440,7 +440,7 @@ export const updateProduct = async (req: Request, res: Response) => {
           .update(productVariants)
           .set({
             price: variant.price,
-            discountPrice: variant.discountPrice || 0,
+            discountPrice: variant.discountPrice ?? null,
             quantity: variant.quantity,
             unit: variant.unit,
             stockQuantity: variant.stockQuantity,
@@ -456,7 +456,7 @@ export const updateProduct = async (req: Request, res: Response) => {
         await tx.insert(productVariants).values(
           newVariants.map((variant) => ({
             ...variant,
-            discountPrice: variant.discountPrice || 0,
+            discountPrice: variant.discountPrice ?? null,
             productId,
           }))
         );
@@ -572,7 +572,10 @@ export const deleteProduct = async (req: Request, res: Response) => {
       );
 
     if (ordersWithVariant.length > 0) {
-      // Collect unique SKUs of variants with pending orders
+      // Collect unique order IDs and SKUs of variants with pending orders
+      const pendingOrderIds = Array.from(
+        new Set(ordersWithVariant.map((v) => v.order.id))
+      );
       const pendingVariantSkus = Array.from(
         new Set(ordersWithVariant.map((v) => v.variantSku))
       );
@@ -580,6 +583,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
       return res.status(400).json({
         message:
           "Cannot delete product because some variants have pending orders",
+        orderIds: pendingOrderIds,
         pendingVariantSkus,
       });
     }
@@ -735,6 +739,64 @@ export const getProductStock = async (req: Request, res: Response) => {
     console.error("Error getting product stock data:", error);
     res.status(500).json({
       message: "Failed to get product stock data",
+      error: String(error),
+    });
+  }
+};
+
+// DELETE variant with order validation
+export const deleteVariant = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const variantId = parseInt(id);
+
+    // Get variant before deletion
+    const [variantToDelete] = await db
+      .select()
+      .from(productVariants)
+      .where(eq(productVariants.id, variantId));
+
+    if (!variantToDelete) {
+      return res.status(404).json({ message: "Variant not found" });
+    }
+
+    // Check if this variant is used in any orders that are not delivered or shipped
+    const ordersWithVariant = await db
+      .select({
+        orderId: orders.id,
+        orderStatus: orders.status,
+      })
+      .from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .where(
+        and(
+          eq(orderItems.variantId, variantId),
+          sql`${orders.status} NOT IN ('delivered', 'shipped')`
+        )
+      );
+
+    if (ordersWithVariant.length > 0) {
+      const orderIds = ordersWithVariant.map((order) => order.orderId);
+      
+      return res.status(400).json({
+        message: "Cannot delete variant because it exists in non-delivered orders",
+        orderIds: orderIds,
+      });
+    }
+
+    // Delete the variant
+    await db
+      .delete(productVariants)
+      .where(eq(productVariants.id, variantId));
+
+    res.json({
+      message: "Variant deleted successfully",
+      variantId,
+    });
+  } catch (error) {
+    console.error("Error deleting variant:", error);
+    res.status(500).json({
+      message: "Failed to delete variant",
       error: String(error),
     });
   }

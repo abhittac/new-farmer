@@ -171,6 +171,11 @@ adminRouter.delete(
   authenticateAdmin,
   productController.deleteProduct
 );
+adminRouter.delete(
+  "/variants/:id",
+  authenticateAdmin,
+  productController.deleteVariant
+);
 adminRouter.get(
   "/product-categories",
   authenticateAdmin,

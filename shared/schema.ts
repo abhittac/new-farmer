@@ -60,7 +60,7 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
 // ✅ Product Variants Input Schema (productId will be added later in code)
 export const insertProductVariantSchema = z.object({
   price: z.number().positive("Price must be greater than 0"),
-  discountPrice: z.number().int().min(0, "Discount price cannot be negative").default(0),
+  discountPrice: z.number().int().min(0, "Discount price cannot be negative").nullable().optional(),
   quantity: z.number().positive("Quantity must be greater than 0"),
   unit: z.string().min(1, "Unit is required"),
   stockQuantity: z.number().int().min(0, "Stock quantity cannot be negative"),
@@ -74,7 +74,7 @@ export const productVariants = pgTable("product_variants", {
     .notNull()
     .references(() => products.id, { onDelete: "cascade" }),
   price: doublePrecision("price").notNull(),
-  discountPrice: integer("discount_price").default(0),
+  discountPrice: integer("discount_price"),
   quantity: doublePrecision("quantity").notNull(),
   unit: text("unit").notNull(),
   stockQuantity: integer("stock_quantity").notNull().default(0),

@@ -64,6 +64,8 @@ interface Product {
   name: string;
   description: string;
   price: number;
+  discountPrice?: number | null;
+  sku?: string;
   category: string;
   stockQuantity: number;
   imageUrl: string;
@@ -87,7 +89,7 @@ const productFormSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   price: z.number().min(0.01, "Price must be greater than 0"),
-  discountPrice: z.number().min(0, "Discount price cannot be negative").default(0),
+  discountPrice: z.number().min(0, "Discount price cannot be negative").nullable().optional(),
   sku: z.string().min(1, "SKU is required").regex(/^[A-Z0-9-_]+$/i, "SKU can only contain letters, numbers, hyphens, and underscores"),
   category: z.string().min(1, "Please select a category"),
   stockQuantity: z.number().int().min(0, "Stock quantity must be 0 or greater"),
@@ -121,7 +123,7 @@ export default function AdminProducts() {
       name: "",
       description: "",
       price: 0,
-      discountPrice: 0,
+      discountPrice: null,
       sku: "",
       category: "",
       stockQuantity: 0,
@@ -328,6 +330,8 @@ export default function AdminProducts() {
       name: product.name,
       description: product.description,
       price: product.price,
+      discountPrice: product.discountPrice || null,
+      sku: product.sku || "",
       category: product.category,
       stockQuantity: product.stockQuantity,
       imageUrl: product.imageUrl,
@@ -344,6 +348,8 @@ export default function AdminProducts() {
       name: "",
       description: "",
       price: 0,
+      discountPrice: null,
+      sku: "",
       category: "",
       stockQuantity: 0,
       imageUrl: "",
@@ -360,10 +366,10 @@ export default function AdminProducts() {
     form.setValue("imageUrl", imagePath);
   };
 
-  // Handle image removal
+  // Handle image removal - fix infinite loop by using functional update properly
   const handleImageRemove = (imagePath: string) => {
-    setUploadedImages((prev) => {
-      const newImages = prev.filter((img) => img !== imagePath);
+    setUploadedImages((prevImages) => {
+      const newImages = prevImages.filter((img) => img !== imagePath);
       if (newImages.length === 0) {
         form.setValue("imageUrl", "");
       } else {
@@ -684,7 +690,26 @@ export default function AdminProducts() {
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="sku"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>SKU (Stock Keeping Unit)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="e.g., COFFEE-ARABICA-250G"
+                        style={{ textTransform: 'uppercase' }}
+                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="price"
@@ -700,6 +725,31 @@ export default function AdminProducts() {
                           onChange={(e) =>
                             field.onChange(parseFloat(e.target.value))
                           }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="discountPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Discount Price (₹)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Optional"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            field.onChange(value === "" ? null : parseFloat(value));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -910,6 +960,31 @@ export default function AdminProducts() {
                           onChange={(e) =>
                             field.onChange(parseFloat(e.target.value))
                           }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="discountPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Discount Price (₹)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Optional"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            field.onChange(value === "" ? null : parseFloat(value));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
