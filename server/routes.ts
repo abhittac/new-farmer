@@ -2631,9 +2631,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Category name must be at least 2 characters long" });
       }
 
-      // Generate slug if not provided
+      // Generate slug if not provided (add 'cat-' prefix for main categories)
       if (!categoryData.slug) {
-        categoryData.slug = generateSlug(categoryData.name);
+        categoryData.slug = `cat-${generateSlug(categoryData.name)}`;
       }
 
       // Check for duplicate category name among main categories only (exact match only)
@@ -2683,9 +2683,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Category name must be at least 2 characters long" });
       }
 
-      // Generate slug if name is being updated and slug is not provided
+      // Generate slug if name is being updated and slug is not provided (add 'cat-' prefix for main categories)
       if (updateData.name && !updateData.slug) {
-        updateData.slug = generateSlug(updateData.name);
+        updateData.slug = `cat-${generateSlug(updateData.name)}`;
       }
 
       // Check for duplicate category name among main categories only if name is being updated (exact match only)
@@ -2825,9 +2825,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ message: "Parent category not found" });
         }
 
-        // Generate slug if not provided
+        // Generate slug if not provided (add 'sub-' prefix for subcategories)
         if (!subcategoryData.slug) {
-          subcategoryData.slug = generateSlug(subcategoryData.name);
+          subcategoryData.slug = `sub-${generateSlug(subcategoryData.name)}`;
         }
 
         // Check for duplicate subcategory name within the same parent category (exact match only)
@@ -2881,9 +2881,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Subcategory name must be at least 2 characters long" });
       }
 
-      // Generate slug if name is being updated and slug is not provided
+      // Generate slug if name is being updated and slug is not provided (add 'sub-' prefix for subcategories)
       if (updateData.name && !updateData.slug) {
-        updateData.slug = generateSlug(updateData.name);
+        updateData.slug = `sub-${generateSlug(updateData.name)}`;
       }
 
       // Check for duplicate subcategory name within the same parent if name is being updated (exact match only)
