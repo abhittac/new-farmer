@@ -40,6 +40,12 @@ interface Product {
   category: string;
 }
 
+interface Variant {
+  id: number;
+  unit: string;
+  sku: string;
+}
+
 interface OrderItem {
   id: number;
   orderId: number;
@@ -47,7 +53,7 @@ interface OrderItem {
   quantity: number;
   price: number;
   product: Product | null;
-  unit: string; // Add this line
+  variant: Variant | null;
 }
 
 interface Payment {
@@ -520,9 +526,9 @@ export default function OrderHistory() {
                       <div>
                         <h4 className="font-semibold mb-3">Order Items</h4>
                         <div className="space-y-3">
-                          {order.items.map((item) => (
+                          {order.items.map((item, index) => (
                             <div
-                              key={item.id}
+                              key={`${item.orderId}-${item.productId}-${index}`}
                               className="flex items-center gap-4 p-3 border rounded-lg"
                             >
                               {item.product?.imageUrl && (
@@ -540,9 +546,9 @@ export default function OrderHistory() {
                                   {item.product?.name ||
                                     `Product ID: ${item.productId}`}
                                 </div>
-                                {item.product?.sku && (
+                                {item.variant?.sku && (
                                   <div className="text-sm text-gray-500">
-                                    SKU: {item.product.sku}
+                                    SKU: {item.variant.sku}
                                   </div>
                                 )}
                                 {item.product?.category && (
@@ -555,10 +561,11 @@ export default function OrderHistory() {
                                     Quantity: {item.quantity} × ₹
                                     {item.price.toFixed(2)}
                                   </div>
-                                  <div>
-                                    Variant: {item.quantity}{" "}
-                                    {formatSnakeCase(item.unit!)}
-                                  </div>
+                                  {item.variant?.unit && (
+                                    <div>
+                                      Unit: {formatSnakeCase(item.variant.unit)}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <div className="text-right">
