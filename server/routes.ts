@@ -2636,7 +2636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         categoryData.slug = generateSlug(categoryData.name);
       }
 
-      // Check for duplicate slug
+      // Check for duplicate slug and potential conflicts
       const existingCategories = await storage.getAllCategories();
       const duplicateSlug = existingCategories.find(cat => cat.slug === categoryData.slug);
       
@@ -2645,6 +2645,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "A category with this name already exists. Please choose a different name.",
           field: "name",
           existingCategory: duplicateSlug.name
+        });
+      }
+
+      // Check for potential naming conflicts (e.g., "powder" vs "herbal-powders")
+      const nameConflict = existingCategories.find(cat => {
+        const existingSlug = cat.slug;
+        const newSlug = categoryData.slug;
+        
+        // Check if one slug contains the other as a substring
+        return (existingSlug.includes(newSlug) || newSlug.includes(existingSlug)) && existingSlug !== newSlug;
+      });
+      
+      if (nameConflict) {
+        return res.status(400).json({ 
+          message: `The name "${categoryData.name}" is too similar to existing category "${nameConflict.name}". Please choose a more distinct name.`,
+          field: "name",
+          existingCategory: nameConflict.name
         });
       }
 
@@ -2685,7 +2702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.slug = generateSlug(updateData.name);
       }
 
-      // Check for duplicate slug if slug is being updated
+      // Check for duplicate slug and potential conflicts if slug is being updated
       if (updateData.slug) {
         const existingCategories = await storage.getAllCategories();
         const duplicateSlug = existingCategories.find(cat => 
@@ -2697,6 +2714,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: "A category with this name already exists. Please choose a different name.",
             field: "name",
             existingCategory: duplicateSlug.name
+          });
+        }
+
+        // Check for potential naming conflicts (e.g., "powder" vs "herbal-powders")
+        const nameConflict = existingCategories.find(cat => {
+          const existingSlug = cat.slug;
+          const newSlug = updateData.slug;
+          
+          // Skip if it's the same category being updated
+          if (cat.id === categoryId) return false;
+          
+          // Check if one slug contains the other as a substring
+          return (existingSlug.includes(newSlug) || newSlug.includes(existingSlug)) && existingSlug !== newSlug;
+        });
+        
+        if (nameConflict) {
+          return res.status(400).json({ 
+            message: `The name "${updateData.name || 'this name'}" is too similar to existing category "${nameConflict.name}". Please choose a more distinct name.`,
+            field: "name",
+            existingCategory: nameConflict.name
           });
         }
       }
@@ -2817,7 +2854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           subcategoryData.slug = generateSlug(subcategoryData.name);
         }
 
-        // Check for duplicate slug
+        // Check for duplicate slug and potential conflicts
         const existingCategories = await storage.getAllCategories();
         const duplicateSlug = existingCategories.find(cat => cat.slug === subcategoryData.slug);
         
@@ -2826,6 +2863,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: "A category or subcategory with this name already exists. Please choose a different name.",
             field: "name",
             existingCategory: duplicateSlug.name
+          });
+        }
+
+        // Check for potential naming conflicts (e.g., "powder" vs "herbal-powders")
+        const nameConflict = existingCategories.find(cat => {
+          const existingSlug = cat.slug;
+          const newSlug = subcategoryData.slug;
+          
+          // Check if one slug contains the other as a substring
+          return (existingSlug.includes(newSlug) || newSlug.includes(existingSlug)) && existingSlug !== newSlug;
+        });
+        
+        if (nameConflict) {
+          return res.status(400).json({ 
+            message: `The name "${subcategoryData.name}" is too similar to existing category "${nameConflict.name}". Please choose a more distinct name.`,
+            field: "name",
+            existingCategory: nameConflict.name
           });
         }
 
@@ -2871,7 +2925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.slug = generateSlug(updateData.name);
       }
 
-      // Check for duplicate slug if slug is being updated
+      // Check for duplicate slug and potential conflicts if slug is being updated
       if (updateData.slug) {
         const existingCategories = await storage.getAllCategories();
         const duplicateSlug = existingCategories.find(cat => 
@@ -2883,6 +2937,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: "A category or subcategory with this name already exists. Please choose a different name.",
             field: "name",
             existingCategory: duplicateSlug.name
+          });
+        }
+
+        // Check for potential naming conflicts (e.g., "powder" vs "herbal-powders")
+        const nameConflict = existingCategories.find(cat => {
+          const existingSlug = cat.slug;
+          const newSlug = updateData.slug;
+          
+          // Skip if it's the same subcategory being updated
+          if (cat.id === subcategoryId) return false;
+          
+          // Check if one slug contains the other as a substring
+          return (existingSlug.includes(newSlug) || newSlug.includes(existingSlug)) && existingSlug !== newSlug;
+        });
+        
+        if (nameConflict) {
+          return res.status(400).json({ 
+            message: `The name "${updateData.name || 'this name'}" is too similar to existing category "${nameConflict.name}". Please choose a more distinct name.`,
+            field: "name",
+            existingCategory: nameConflict.name
           });
         }
       }

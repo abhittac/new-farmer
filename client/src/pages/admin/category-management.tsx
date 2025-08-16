@@ -145,6 +145,13 @@ export default function CategoryManagement() {
         setCategoryName("");
         setCategoryDescription("");
         toast({ title: "Success", description: "Category created" });
+      } else {
+        const errorData = await res.json();
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to create category",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       toast({
@@ -179,6 +186,13 @@ export default function CategoryManagement() {
         setSubcategoryDescription("");
         setSelectedCategory(null);
         toast({ title: "Success", description: "Subcategory created" });
+      } else {
+        const errorData = await res.json();
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to create subcategory",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       toast({
