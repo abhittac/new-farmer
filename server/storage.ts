@@ -283,7 +283,7 @@ export class MemStorage implements IStorage {
     this.currentSubscriptionId = 1;
     this.currentContactMessageId = 1;
 
-    // Initialize with seed data
+  
   }
 
   private initializeProducts(): void {
