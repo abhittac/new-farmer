@@ -12,6 +12,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -67,6 +75,11 @@ export default function CategoryManagement() {
   const [categoryDescription, setCategoryDescription] = useState("");
   const [subcategoryName, setSubcategoryName] = useState("");
   const [subcategoryDescription, setSubcategoryDescription] = useState("");
+
+  // State for deletion error with product details
+  const [showProductsDialog, setShowProductsDialog] = useState(false);
+  const [productsUsingCategory, setProductsUsingCategory] = useState<any[]>([]);
+  const [deletionErrorMessage, setDeletionErrorMessage] = useState("");
 
   const { toast } = useToast();
 
@@ -263,6 +276,20 @@ export default function CategoryManagement() {
           await fetchCategories();
         }
         toast({ title: "Deleted", description: "Category deleted" });
+      } else {
+        const errorData = await res.json();
+        if (errorData.products && errorData.products.length > 0) {
+          // Show detailed error with product information
+          setProductsUsingCategory(errorData.products);
+          setDeletionErrorMessage(errorData.message);
+          setShowProductsDialog(true);
+        } else {
+          toast({
+            title: "Error",
+            description: errorData.message || "Delete failed",
+            variant: "destructive",
+          });
+        }
       }
     } catch (err) {
       toast({
@@ -511,6 +538,58 @@ export default function CategoryManagement() {
             onChange={(e) => setSubcategoryDescription(e.target.value)}
           />
           <Button onClick={createSubcategory}>Create</Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Products Using Category Dialog */}
+      <Dialog open={showProductsDialog} onOpenChange={setShowProductsDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cannot Delete Category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-red-600">{deletionErrorMessage}</p>
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product Image</TableHead>
+                    <TableHead>Product Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Subcategory</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {productsUsingCategory.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl.startsWith('http') ? product.imageUrl : `${import.meta.env.VITE_BASE_URL}${product.imageUrl}`}
+                            alt={product.name}
+                            className="w-12 h-12 object-cover rounded"
+                            onError={(e) => {
+                              e.currentTarget.src = '/uploads/products/no-profile.jpg';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                            <span className="text-xs text-gray-500">No Image</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>{product.category}</TableCell>
+                      <TableCell>{product.subcategory}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setShowProductsDialog(false)}>Close</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
