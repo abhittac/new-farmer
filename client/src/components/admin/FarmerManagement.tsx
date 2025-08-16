@@ -54,6 +54,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import placeholderImage from "../../../../public/uploads/products/no-profile.jpg";
+import { getImageUrl } from "@/utils/imageUtils";
 import MainLoader from "@/utils/MainLoader";
 
 // Create a comprehensive validation schema for the farmer form
@@ -915,7 +916,7 @@ export default function FarmerManagement() {
                       {/* abhi
                        */}
                       <img
-                        src={farmer.imageUrl}
+                        src={getImageUrl(farmer.imageUrl)}
                         onError={(e) => {
                           e.currentTarget.onerror = null; // prevent infinite loop
                           e.currentTarget.src = placeholderImage; // fallback image

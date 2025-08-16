@@ -541,66 +541,63 @@ export const deleteProduct = async (req: Request, res: Response) => {
       .from(productVariants)
       .where(eq(productVariants.productId, productId));
 
-    if (productVariantsList.length === 0) {
-      // No variants? Consider what you want to do here.
-      // Since variants define stock and deletion, you might want to
-      // simply respond or optionally soft delete product's updatedAt timestamp.
+    // Only check for orders if there are variants
+    if (productVariantsList.length > 0) {
+      const variantIds = productVariantsList.map((v) => v.id);
 
-      return res.status(400).json({
-        message: "No variants found for this product, cannot delete",
-      });
+      // Find order items for these variants that belong to pending orders
+      const ordersWithVariant = await db
+        .select({
+          order: orders,
+          orderItem: orderItems,
+          variantSku: productVariants.sku,
+          variantId: productVariants.id,
+        })
+        .from(orderItems)
+        .innerJoin(orders, eq(orderItems.orderId, orders.id))
+        .innerJoin(productVariants, eq(orderItems.variantId, productVariants.id))
+        .where(
+          and(
+            inArray(orderItems.variantId, variantIds),
+            sql`${orders.status} NOT IN ('delivered', 'cancelled')`
+          )
+        );
+
+      if (ordersWithVariant.length > 0) {
+        // Collect unique order IDs and SKUs of variants with pending orders
+        const pendingOrderIds = Array.from(
+          new Set(ordersWithVariant.map((v) => v.order.id))
+        );
+        const pendingVariantSkus = Array.from(
+          new Set(ordersWithVariant.map((v) => v.variantSku))
+        );
+
+        return res.status(400).json({
+          message:
+            "Cannot delete product because some variants have pending orders",
+          orderIds: pendingOrderIds,
+          pendingVariantSkus,
+          details: ordersWithVariant.map(item => ({
+            orderId: item.order.id,
+            sku: item.variantSku,
+            status: item.order.status
+          }))
+        });
+      }
+
+      // Delete all variants of this product if no pending orders
+      await db
+        .delete(productVariants)
+        .where(eq(productVariants.productId, productId));
     }
 
-    const variantIds = productVariantsList.map((v) => v.id);
-
-    // Find order items for these variants that belong to undelivered or unshipped orders
-    const ordersWithVariant = await db
-      .select({
-        order: orders,
-        orderItem: orderItems,
-        variantSku: productVariants.sku,
-        variantId: productVariants.id,
-      })
-      .from(orderItems)
-      .innerJoin(orders, eq(orderItems.orderId, orders.id))
-      .innerJoin(productVariants, eq(orderItems.variantId, productVariants.id))
-      .where(
-        and(
-          inArray(orderItems.variantId, variantIds),
-          sql`${orders.status} NOT IN ('delivered', 'shipped')`
-        )
-      );
-
-    if (ordersWithVariant.length > 0) {
-      // Collect unique order IDs and SKUs of variants with pending orders
-      const pendingOrderIds = Array.from(
-        new Set(ordersWithVariant.map((v) => v.order.id))
-      );
-      const pendingVariantSkus = Array.from(
-        new Set(ordersWithVariant.map((v) => v.variantSku))
-      );
-
-      return res.status(400).json({
-        message:
-          "Cannot delete product because some variants have pending orders",
-        orderIds: pendingOrderIds,
-        pendingVariantSkus,
-      });
-    }
-
-    // Delete all variants of this product (hard delete since no is_deleted column)
+    // Finally, delete the product itself (hard delete)
     await db
-      .delete(productVariants)
-      .where(eq(productVariants.productId, productId));
-
-    // Optional: Update product's updatedAt timestamp for record keeping
-    await db
-      .update(products)
-      .set({ updatedAt: new Date() })
+      .delete(products)
       .where(eq(products.id, productId));
 
     res.json({
-      message: "Product variants soft-deleted successfully",
+      message: "Product deleted successfully",
       productId,
     });
   } catch (error) {
