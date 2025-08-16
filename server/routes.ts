@@ -2626,15 +2626,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Category name is required" });
       }
 
+      // Validate name length and format
+      if (categoryData.name.trim().length < 2) {
+        return res.status(400).json({ message: "Category name must be at least 2 characters long" });
+      }
+
       // Generate slug if not provided
       if (!categoryData.slug) {
         categoryData.slug = generateSlug(categoryData.name);
+      }
+
+      // Check for duplicate slug
+      const existingCategories = await storage.getAllCategories();
+      const duplicateSlug = existingCategories.find(cat => cat.slug === categoryData.slug);
+      
+      if (duplicateSlug) {
+        return res.status(400).json({ 
+          message: "A category with this name already exists. Please choose a different name.",
+          field: "name",
+          existingCategory: duplicateSlug.name
+        });
       }
 
       const newCategory = await storage.createCategory(categoryData);
       res.status(201).json(newCategory);
     } catch (error) {
       console.error("Create category error:", error);
+      
+      // Handle database constraint errors
+      if (error.code === '23505' && error.constraint === 'categories_slug_unique') {
+        return res.status(400).json({ 
+          message: "A category with this name already exists. Please choose a different name.",
+          field: "name"
+        });
+      }
+      
       res.status(500).json({ message: "Failed to create category" });
     }
   });
@@ -2649,9 +2675,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid category ID" });
       }
 
+      // Validate name if provided
+      if (updateData.name && updateData.name.trim().length < 2) {
+        return res.status(400).json({ message: "Category name must be at least 2 characters long" });
+      }
+
       // Generate slug if name is being updated and slug is not provided
       if (updateData.name && !updateData.slug) {
         updateData.slug = generateSlug(updateData.name);
+      }
+
+      // Check for duplicate slug if slug is being updated
+      if (updateData.slug) {
+        const existingCategories = await storage.getAllCategories();
+        const duplicateSlug = existingCategories.find(cat => 
+          cat.slug === updateData.slug && cat.id !== categoryId
+        );
+        
+        if (duplicateSlug) {
+          return res.status(400).json({ 
+            message: "A category with this name already exists. Please choose a different name.",
+            field: "name",
+            existingCategory: duplicateSlug.name
+          });
+        }
       }
 
       const updatedCategory = await storage.updateCategory(
@@ -2661,6 +2708,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedCategory);
     } catch (error) {
       console.error("Update category error:", error);
+      
+      // Handle database constraint errors
+      if (error.code === '23505' && error.constraint === 'categories_slug_unique') {
+        return res.status(400).json({ 
+          message: "A category with this name already exists. Please choose a different name.",
+          field: "name"
+        });
+      }
+      
       res.status(500).json({ message: "Failed to update category" });
     }
   });
@@ -2745,6 +2801,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ message: "Subcategory name is required" });
         }
 
+        // Validate name length and format
+        if (subcategoryData.name.trim().length < 2) {
+          return res.status(400).json({ message: "Subcategory name must be at least 2 characters long" });
+        }
+
         // Verify parent category exists
         const parentCategory = await storage.getCategoryById(parentId);
         if (!parentCategory) {
@@ -2756,6 +2817,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           subcategoryData.slug = generateSlug(subcategoryData.name);
         }
 
+        // Check for duplicate slug
+        const existingCategories = await storage.getAllCategories();
+        const duplicateSlug = existingCategories.find(cat => cat.slug === subcategoryData.slug);
+        
+        if (duplicateSlug) {
+          return res.status(400).json({ 
+            message: "A category or subcategory with this name already exists. Please choose a different name.",
+            field: "name",
+            existingCategory: duplicateSlug.name
+          });
+        }
+
         const newSubcategory = await storage.createCategory({
           ...subcategoryData,
           parentId: parentId,
@@ -2764,6 +2837,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(201).json(newSubcategory);
       } catch (error) {
         console.error("Create subcategory error:", error);
+        
+        // Handle database constraint errors
+        if (error.code === '23505' && error.constraint === 'categories_slug_unique') {
+          return res.status(400).json({ 
+            message: "A category or subcategory with this name already exists. Please choose a different name.",
+            field: "name"
+          });
+        }
+        
         res.status(500).json({ message: "Failed to create subcategory" });
       }
     }
@@ -2779,9 +2861,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid subcategory ID" });
       }
 
+      // Validate name if provided
+      if (updateData.name && updateData.name.trim().length < 2) {
+        return res.status(400).json({ message: "Subcategory name must be at least 2 characters long" });
+      }
+
       // Generate slug if name is being updated and slug is not provided
       if (updateData.name && !updateData.slug) {
         updateData.slug = generateSlug(updateData.name);
+      }
+
+      // Check for duplicate slug if slug is being updated
+      if (updateData.slug) {
+        const existingCategories = await storage.getAllCategories();
+        const duplicateSlug = existingCategories.find(cat => 
+          cat.slug === updateData.slug && cat.id !== subcategoryId
+        );
+        
+        if (duplicateSlug) {
+          return res.status(400).json({ 
+            message: "A category or subcategory with this name already exists. Please choose a different name.",
+            field: "name",
+            existingCategory: duplicateSlug.name
+          });
+        }
       }
 
       const updatedSubcategory = await storage.updateCategory(
@@ -2791,6 +2894,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedSubcategory);
     } catch (error) {
       console.error("Update subcategory error:", error);
+      
+      // Handle database constraint errors
+      if (error.code === '23505' && error.constraint === 'categories_slug_unique') {
+        return res.status(400).json({ 
+          message: "A category or subcategory with this name already exists. Please choose a different name.",
+          field: "name"
+        });
+      }
+      
       res.status(500).json({ message: "Failed to update subcategory" });
     }
   });
