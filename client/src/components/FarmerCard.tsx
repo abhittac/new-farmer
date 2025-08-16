@@ -3,6 +3,7 @@ import { Farmer } from "@shared/schema";
 import { MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import { getImageUrl } from "@/utils/imageUtils";
 
 interface FarmerCardProps {
   farmer: Farmer;
@@ -13,7 +14,7 @@ export default function FarmerCard({ farmer }: FarmerCardProps) {
     <motion.div whileHover={{ y: -5 }} transition={{ duration: 0.3 }}>
       <Card className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition duration-300 h-full">
         <img
-          src={farmer.imageUrl}
+          src={getImageUrl(farmer.imageUrl)}
           alt={farmer.name}
           className="w-full h-64 object-cover"
           onError={(e) => {

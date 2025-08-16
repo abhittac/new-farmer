@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import placeholderImage from "../../../public/uploads/products/No-Image.png";
 import { formatSnakeCase } from "@/utils/formatSnakeCase";
+import { getImageUrl } from "@/utils/imageUtils";
 export default function Cart() {
   // Access cart context
   const {
@@ -72,7 +73,7 @@ export default function Cart() {
                         className="flex items-center space-x-4 pb-4 border-b border-border/10"
                       >
                         <img
-                          src={item.product.imageUrl}
+                          src={getImageUrl(item.product?.imageUrl)}
                           alt={item.product.name}
                           onError={(e) => {
                             e.currentTarget.src = placeholderImage;

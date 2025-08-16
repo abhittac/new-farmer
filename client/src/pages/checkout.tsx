@@ -32,6 +32,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import placeholderImage from "../../../public/uploads/products/No-Image.png";
 import { formatSnakeCase } from "@/utils/formatSnakeCase";
+import { getImageUrl } from "@/utils/imageUtils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 // Dynamic form schema based on COD availability
 const createFormSchema = (codEnabled: boolean) =>
@@ -734,7 +735,7 @@ export default function Checkout() {
                     className="flex items-center py-3 border-b border-border/10"
                   >
                     <img
-                      src={item.product.imageUrl}
+                      src={getImageUrl(item.product?.imageUrl)}
                       alt={item.product.name}
                       className="w-14 h-14 object-cover rounded-md mr-4"
                       onError={(e) => {

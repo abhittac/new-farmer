@@ -39,6 +39,7 @@ import farmerImage from "../../../public/pic1.jpg";
 import farmerImage2 from "../../../public/pic2.jpg";
 import farmerImage3 from "../../../attached_assets/pic1.webp";
 import { formatSnakeCase } from "@/utils/formatSnakeCase";
+import { getImageUrl } from "@/utils/imageUtils";
 const newsletterSchema = z.object({
   name: z.string().optional(),
   email: z.string().email("Please enter a valid email address"),
@@ -283,7 +284,7 @@ export default function Home() {
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-20 h-20 rounded-full overflow-hidden shrink-0">
                       <img
-                        src={product?.imageUrl}
+                        src={getImageUrl(product?.imageUrl)}
                         alt="Featured product"
                         className="w-full h-full object-cover"
                       />

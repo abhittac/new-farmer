@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import placeholderImage from "../../../public/uploads/products/No-Image.png";
 import { formatSnakeCase } from "@/utils/formatSnakeCase";
+import { getImageUrl } from "@/utils/imageUtils";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 interface Product {
@@ -534,7 +535,7 @@ export default function OrderHistory() {
                             >
                               {item.product?.imageUrl && (
                                 <img
-                                  src={item.product.imageUrl}
+                                  src={getImageUrl(item.product?.imageUrl)}
                                   alt={item.product.name}
                                   onError={(e) => {
                                     e.currentTarget.src = placeholderImage;

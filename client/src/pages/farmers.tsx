@@ -6,6 +6,7 @@ import { useAnimations } from "@/hooks/use-animations";
 import { MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { getImageUrl } from "@/utils/imageUtils";
 
 export default function Farmers() {
   // Set up animations
@@ -89,7 +90,7 @@ export default function Farmers() {
                   className="bg-white rounded-lg overflow-hidden shadow-md h-full flex flex-col"
                 >
                   <img 
-                    src={farmer.imageUrl}
+                    src={getImageUrl(farmer.imageUrl)}
                     alt={farmer.name}
                     className="w-full h-64 object-cover"
                   />
