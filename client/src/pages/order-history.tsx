@@ -551,11 +551,14 @@ export default function OrderHistory() {
                                   </div>
                                 )}
                                 <div className="text-sm text-gray-600">
-                                  Quantity: {item.quantity} × ₹
-                                  {item.price.toFixed(2)}/{item.quantity}{" "}
-                                  {item.unit === "pcs" && item.quantity === 1
+                                  <div>
+                                    Quantity: {item.quantity} × ₹{item.price.toFixed(2)}
+                                  </div>
+                                  <div>
+                                    Variant: {item.quantity} {item.unit === "pcs" && item.quantity === 1
                                     ? "Piece"
                                     : formatSnakeCase(item.unit!)}
+                                  </div>
                                 </div>
                               </div>
                               <div className="text-right">
