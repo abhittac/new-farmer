@@ -112,8 +112,9 @@ interface EnhancedProduct {
 const variantSchema = z.object({
   price: z.number().min(0.01, "Price must be greater than 0"),
   discountPrice: z.preprocess((val) => {
-    if (val === "" || val === false || val === undefined) return null;
-    return typeof val === "string" ? Number(val) : val;
+    if (val === "" || val === false || val === undefined || val === null || (typeof val === "string" && val.trim() === "")) return null;
+    const numVal = typeof val === "string" ? Number(val) : val;
+    return isNaN(numVal) ? null : numVal;
   }, z.number().min(0).nullable().optional()),
   quantity: z.number().min(0.01, "Quantity must be greater than 0"),
   unit: z.string().min(1, "Please select a unit"),
@@ -1339,16 +1340,18 @@ export default function EnhancedAdminProducts() {
                         />
                       </div>
 
-                      <div className="flex justify-between">
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => remove(index)}
-                        >
-                          Remove Variant
-                        </Button>
-                      </div>
+                      {fields.length > 1 && (
+                        <div className="flex justify-between">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => remove(index)}
+                          >
+                            Remove Variant
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
 
