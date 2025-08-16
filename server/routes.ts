@@ -1709,6 +1709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           variant: {
             id: productVariants.id,
+            quantity: productVariants.quantity,
             unit: productVariants.unit,
             sku: productVariants.sku,
           },

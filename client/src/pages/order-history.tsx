@@ -42,6 +42,7 @@ interface Product {
 
 interface Variant {
   id: number;
+  quantity: number;
   unit: string;
   sku: string;
 }
@@ -561,9 +562,9 @@ export default function OrderHistory() {
                                     Quantity: {item.quantity} × ₹
                                     {item.price.toFixed(2)}
                                   </div>
-                                  {item.variant?.unit && (
+                                  {item.variant?.quantity && item.variant?.unit && (
                                     <div>
-                                      Unit: {formatSnakeCase(item.variant.unit)}
+                                      Variant: {item.variant.quantity} {formatSnakeCase(item.variant.unit)}
                                     </div>
                                   )}
                                 </div>
