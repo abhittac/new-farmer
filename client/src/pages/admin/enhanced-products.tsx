@@ -194,6 +194,8 @@ export default function EnhancedAdminProducts() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [isImageGalleryOpen, setIsImageGalleryOpen] = useState(false);
+  const [isDeletionErrorDialogOpen, setIsDeletionErrorDialogOpen] = useState(false);
+  const [deletionError, setDeletionError] = useState<any>(null);
   const productsPerPage = 5;
   const { toast } = useToast();
 
@@ -414,10 +416,18 @@ export default function EnhancedAdminProducts() {
         },
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error(
-          "Cannot delete product associated with undelivered orders"
-        );
+        // Check if it's a deletion restriction error
+        if (response.status === 400 && responseData.orderIds) {
+          setDeletionError(responseData);
+          setIsDeletionErrorDialogOpen(true);
+          setIsDeleteDialogOpen(false);
+          setProductToDelete(null);
+          return;
+        }
+        throw new Error(responseData.message || "Failed to delete product");
       }
 
       fetchProducts(currentPage);
@@ -1772,6 +1782,76 @@ export default function EnhancedAdminProducts() {
               }
             >
               Delete Product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deletion Error Dialog */}
+      <Dialog open={isDeletionErrorDialogOpen} onOpenChange={setIsDeletionErrorDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Cannot Delete Product</DialogTitle>
+            <DialogDescription>
+              This product cannot be deleted because it has active orders that haven't been delivered yet.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {deletionError && (
+            <div className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <h4 className="font-semibold text-amber-800 mb-2">
+                  Product has {deletionError.orderIds?.length || 0} pending {deletionError.orderIds?.length === 1 ? 'order' : 'orders'}
+                </h4>
+                <p className="text-sm text-amber-700">
+                  The following variants are linked to undelivered orders:
+                </p>
+              </div>
+              
+              {deletionError.pendingVariantSkus && deletionError.pendingVariantSkus.length > 0 && (
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>SKU</TableHead>
+                        <TableHead>Order IDs</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {deletionError.pendingVariantSkus.map((sku: string, index: number) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{sku}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {deletionError.orderIds?.map((orderId: string, orderIndex: number) => (
+                                <Badge key={orderIndex} variant="outline" className="text-xs">
+                                  {orderId}
+                                </Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-700">
+                  <strong>To delete this product:</strong> Wait for all pending orders to be delivered, 
+                  or manually mark the orders as delivered in the Orders section.
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeletionErrorDialogOpen(false)}
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
