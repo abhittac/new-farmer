@@ -63,6 +63,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
+import { getImageUrl } from "@/utils/imageUtils";
 import * as z from "zod";
 import ImageUpload from "@/components/admin/ImageUpload";
 import MainLoader from "@/utils/MainLoader";
@@ -112,7 +113,14 @@ interface EnhancedProduct {
 const variantSchema = z.object({
   price: z.number().min(0.01, "Price must be greater than 0"),
   discountPrice: z.preprocess((val) => {
-    if (val === "" || val === false || val === undefined || val === null || (typeof val === "string" && val.trim() === "")) return null;
+    if (
+      val === "" ||
+      val === false ||
+      val === undefined ||
+      val === null ||
+      (typeof val === "string" && val.trim() === "")
+    )
+      return null;
     const numVal = typeof val === "string" ? Number(val) : val;
     return isNaN(numVal) ? null : numVal;
   }, z.number().min(0).nullable().optional()),
@@ -176,7 +184,7 @@ export default function EnhancedAdminProducts() {
   const [productToDelete, setProductToDelete] =
     useState<EnhancedProduct | null>(null);
   const [productToEdit, setProductToEdit] = useState<EnhancedProduct | null>(
-    null
+    null,
   );
   const [categories, setCategories] = useState<string[]>([]);
   const [mainCategories, setMainCategories] = useState<
@@ -186,7 +194,7 @@ export default function EnhancedAdminProducts() {
     { id: number; name: string; slug: string; parentId: number }[]
   >([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
-    null
+    null,
   );
   const [farmers, setFarmers] = useState<
     { id: number; name: string; location: string }[]
@@ -194,10 +202,15 @@ export default function EnhancedAdminProducts() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [isImageGalleryOpen, setIsImageGalleryOpen] = useState(false);
-  const [isDeletionErrorDialogOpen, setIsDeletionErrorDialogOpen] = useState(false);
+  const [isDeletionErrorDialogOpen, setIsDeletionErrorDialogOpen] =
+    useState(false);
   const [deletionError, setDeletionError] = useState<any>(null);
-  const [isVariantDeletionDialogOpen, setIsVariantDeletionDialogOpen] = useState(false);
-  const [variantToDelete, setVariantToDelete] = useState<{index: number, variant: any} | null>(null);
+  const [isVariantDeletionDialogOpen, setIsVariantDeletionDialogOpen] =
+    useState(false);
+  const [variantToDelete, setVariantToDelete] = useState<{
+    index: number;
+    variant: any;
+  } | null>(null);
   const productsPerPage = 5;
   const { toast } = useToast();
 
@@ -210,14 +223,16 @@ export default function EnhancedAdminProducts() {
       description: "",
       category: "",
       subcategory: "",
-      variants: [{
-        price: 0,
-        discountPrice: null,
-        quantity: 0,
-        unit: "",
-        stockQuantity: 0,
-        sku: "",
-      }],
+      variants: [
+        {
+          price: 0,
+          discountPrice: null,
+          quantity: 0,
+          unit: "",
+          stockQuantity: 0,
+          sku: "",
+        },
+      ],
       imageUrl: "",
       imageUrls: "",
       videoUrl: "",
@@ -257,7 +272,7 @@ export default function EnhancedAdminProducts() {
             Authorization: `Bearer ${token}`,
             "Cache-Control": "no-cache",
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -308,7 +323,7 @@ export default function EnhancedAdminProducts() {
           headers: {
             "Cache-Control": "no-cache",
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -354,7 +369,7 @@ export default function EnhancedAdminProducts() {
             id: farmer.id,
             name: farmer.name,
             location: farmer.location || "",
-          }))
+          })),
         );
       }
     } catch (err) {
@@ -374,7 +389,7 @@ export default function EnhancedAdminProducts() {
   // Handle category change to load subcategories
   const handleCategoryChange = (categoryName: string) => {
     const selectedCategory = mainCategories.find(
-      (cat) => cat.name === categoryName
+      (cat) => cat.name === categoryName,
     );
     if (selectedCategory) {
       setSelectedCategoryId(selectedCategory.id);
@@ -393,8 +408,8 @@ export default function EnhancedAdminProducts() {
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.variants?.some((variant) =>
-        variant.sku?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+        variant.sku?.toLowerCase().includes(searchTerm.toLowerCase()),
+      ),
   );
 
   // Handle page change
@@ -492,7 +507,7 @@ export default function EnhancedAdminProducts() {
   const setupEditForm = (product: EnhancedProduct) => {
     // First, find the category to get its subcategories
     const selectedCategory = mainCategories.find(
-      (cat) => cat.name === product.category
+      (cat) => cat.name === product.category,
     );
     if (selectedCategory) {
       setSelectedCategoryId(selectedCategory.id);
@@ -547,7 +562,7 @@ export default function EnhancedAdminProducts() {
   // Handle primary image upload
   const handlePrimaryImageUpload = (
     imagePath: string,
-    thumbnailPath: string
+    thumbnailPath: string,
   ) => {
     setPrimaryImage(imagePath);
     form.setValue("imageUrl", imagePath);
@@ -556,7 +571,7 @@ export default function EnhancedAdminProducts() {
   // Handle additional images upload
   const handleAdditionalImageUpload = (
     imagePath: string,
-    thumbnailPath: string
+    thumbnailPath: string,
   ) => {
     setUploadedImages((prev) => [...prev, imagePath]);
     const currentImages = form.getValues("imageUrls");
@@ -701,7 +716,7 @@ export default function EnhancedAdminProducts() {
           responseData.message ||
             (productToEdit
               ? "Failed to update product"
-              : "Failed to create product")
+              : "Failed to create product"),
         );
       }
 
@@ -778,7 +793,7 @@ export default function EnhancedAdminProducts() {
 
       // Remove variant from form array if deletion was successful
       remove(index);
-      
+
       toast({
         title: "Variant deleted",
         description: "The variant has been deleted successfully.",
@@ -786,7 +801,8 @@ export default function EnhancedAdminProducts() {
     } catch (err) {
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to delete variant",
+        description:
+          err instanceof Error ? err.message : "Failed to delete variant",
         variant: "destructive",
       });
     }
@@ -869,7 +885,7 @@ export default function EnhancedAdminProducts() {
                           <div className="flex items-start gap-3">
                             <div className="relative w-24 h-20 flex-shrink-0">
                               <img
-                                src={product.imageUrl}
+                                src={getImageUrl(product.imageUrl)}
                                 alt={product.name}
                                 className="w-full h-full object-cover rounded-md"
                                 onError={(e) => {
@@ -877,11 +893,12 @@ export default function EnhancedAdminProducts() {
                                   e.currentTarget.src = placeholderImage;
                                 }}
                               />
-                              {product.imageUrls && product.imageUrls.length > 0 && (
-                                <div className="absolute -bottom-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                  +{product.imageUrls?.length}
-                                </div>
-                              )}
+                              {product.imageUrls &&
+                                product.imageUrls.length > 0 && (
+                                  <div className="absolute -bottom-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                    +{product.imageUrls?.length}
+                                  </div>
+                                )}
                             </div>
                             <div className="flex flex-col overflow-hidden">
                               <p className="font-medium truncate">
@@ -890,12 +907,15 @@ export default function EnhancedAdminProducts() {
                               <p className="text-sm text-muted-foreground line-clamp-2">
                                 {product.shortDescription}
                               </p>
-                              {product.variants && product.variants.length > 0 && product.variants[0].sku && (
-                                <p className="text-xs text-muted-foreground">
-                                  SKU: {product.variants[0].sku}
-                                  {product.variants.length > 1 && ` (+${product.variants.length - 1} more)`}
-                                </p>
-                              )}
+                              {product.variants &&
+                                product.variants.length > 0 &&
+                                product.variants[0].sku && (
+                                  <p className="text-xs text-muted-foreground">
+                                    SKU: {product.variants[0].sku}
+                                    {product.variants.length > 1 &&
+                                      ` (+${product.variants.length - 1} more)`}
+                                  </p>
+                                )}
                             </div>
                           </div>
                         </TableCell>
@@ -908,7 +928,9 @@ export default function EnhancedAdminProducts() {
                         {/* Subcategory */}
                         <TableCell className="w-[150px]">
                           {product.subcategory || (
-                            <span className="text-muted-foreground italic">No subcategory</span>
+                            <span className="text-muted-foreground italic">
+                              No subcategory
+                            </span>
                           )}
                         </TableCell>
 
@@ -954,7 +976,7 @@ export default function EnhancedAdminProducts() {
                               onClick={() =>
                                 handleToggleFeatured(
                                   product.id,
-                                  Boolean(product.featured)
+                                  Boolean(product.featured),
                                 )
                               }
                             >
@@ -1007,7 +1029,7 @@ export default function EnhancedAdminProducts() {
                   Showing {(currentPage - 1) * productsPerPage + 1} to{" "}
                   {Math.min(
                     currentPage * productsPerPage,
-                    products.length * totalPages
+                    products.length * totalPages,
                   )}{" "}
                   of {products.length * totalPages} products
                 </div>
@@ -1084,7 +1106,9 @@ export default function EnhancedAdminProducts() {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Product Name <span className="text-red-500">*</span></FormLabel>
+                          <FormLabel>
+                            Product Name <span className="text-red-500">*</span>
+                          </FormLabel>
                           <FormControl>
                             <Input
                               placeholder="e.g., Premium Tea Leaves"
@@ -1101,7 +1125,9 @@ export default function EnhancedAdminProducts() {
                       name="category"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
+                          <FormLabel>
+                            Category <span className="text-red-500">*</span>
+                          </FormLabel>
                           <Select
                             onValueChange={(value) => {
                               field.onChange(value);
@@ -1178,7 +1204,10 @@ export default function EnhancedAdminProducts() {
                     name="shortDescription"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Short Description <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel>
+                          Short Description{" "}
+                          <span className="text-red-500">*</span>
+                        </FormLabel>
                         <FormControl>
                           <Input
                             placeholder="Brief product description for listings"
@@ -1199,7 +1228,10 @@ export default function EnhancedAdminProducts() {
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Full Description <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel>
+                          Full Description{" "}
+                          <span className="text-red-500">*</span>
+                        </FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Detailed product description..."
@@ -1220,7 +1252,10 @@ export default function EnhancedAdminProducts() {
                     name="farmerId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Farmer/Producer <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel>
+                          Farmer/Producer{" "}
+                          <span className="text-red-500">*</span>
+                        </FormLabel>
                         <Select
                           onValueChange={(value) =>
                             field.onChange(parseInt(value))
@@ -1263,7 +1298,9 @@ export default function EnhancedAdminProducts() {
                           name={`variants.${index}.price`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Price <span className="text-red-500">*</span></FormLabel>
+                              <FormLabel>
+                                Price <span className="text-red-500">*</span>
+                              </FormLabel>
                               <FormControl>
                                 <div className="relative">
                                   <span className="absolute left-3 top-2">
@@ -1308,7 +1345,7 @@ export default function EnhancedAdminProducts() {
                                       field.onChange(
                                         e.target.value
                                           ? e.target.valueAsNumber
-                                          : null
+                                          : null,
                                       )
                                     }
                                   />
@@ -1325,7 +1362,9 @@ export default function EnhancedAdminProducts() {
                           name={`variants.${index}.quantity`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Quantity <span className="text-red-500">*</span></FormLabel>
+                              <FormLabel>
+                                Quantity <span className="text-red-500">*</span>
+                              </FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
@@ -1350,7 +1389,9 @@ export default function EnhancedAdminProducts() {
                           name={`variants.${index}.unit`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Unit <span className="text-red-500">*</span></FormLabel>
+                              <FormLabel>
+                                Unit <span className="text-red-500">*</span>
+                              </FormLabel>
                               <Select
                                 onValueChange={field.onChange}
                                 value={field.value}
@@ -1380,7 +1421,10 @@ export default function EnhancedAdminProducts() {
                           name={`variants.${index}.stockQuantity`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Stock Quantity <span className="text-red-500">*</span></FormLabel>
+                              <FormLabel>
+                                Stock Quantity{" "}
+                                <span className="text-red-500">*</span>
+                              </FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
@@ -1403,9 +1447,14 @@ export default function EnhancedAdminProducts() {
                           name={`variants.${index}.sku`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>SKU <span className="text-red-500">*</span></FormLabel>
+                              <FormLabel>
+                                SKU <span className="text-red-500">*</span>
+                              </FormLabel>
                               <FormControl>
-                                <Input placeholder="Enter SKU code" {...field} />
+                                <Input
+                                  placeholder="Enter SKU code"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1420,12 +1469,18 @@ export default function EnhancedAdminProducts() {
                             variant="destructive"
                             size="sm"
                             onClick={() => {
-                              const currentVariant = form.getValues(`variants.${index}`);
+                              const currentVariant = form.getValues(
+                                `variants.${index}`,
+                              );
                               // If editing an existing product and variant has an ID, show confirmation
-                              if (productToEdit && currentVariant && productToEdit.variants?.[index]?.id) {
+                              if (
+                                productToEdit &&
+                                currentVariant &&
+                                productToEdit.variants?.[index]?.id
+                              ) {
                                 setVariantToDelete({
                                   index,
-                                  variant: productToEdit.variants[index]
+                                  variant: productToEdit.variants[index],
                                 });
                                 setIsVariantDeletionDialogOpen(true);
                               } else {
@@ -1499,7 +1554,8 @@ export default function EnhancedAdminProducts() {
                             <div className="space-y-1 leading-none">
                               <FormLabel>Preservatives-Free</FormLabel>
                               <FormDescription>
-                                No preservatives or harmful additives used in production
+                                No preservatives or harmful additives used in
+                                production
                               </FormDescription>
                             </div>
                           </FormItem>
@@ -1786,7 +1842,7 @@ export default function EnhancedAdminProducts() {
               <div>
                 <h4 className="text-sm font-medium mb-2">Primary Image</h4>
                 <img
-                  src={productToEdit.imageUrl}
+                  src={getImageUrl(productToEdit?.imageUrl)}
                   alt={`${productToEdit.name} - Primary`}
                   className="w-full max-w-md h-64 object-cover rounded-lg border"
                   onError={(e) => {
@@ -1805,7 +1861,7 @@ export default function EnhancedAdminProducts() {
                       {productToEdit.imageUrls.map((imageUrl, index) => (
                         <div key={index} className="relative">
                           <img
-                            src={imageUrl}
+                            src={getImageUrl(imageUrl)}
                             alt={`${productToEdit.name} - Image ${index + 1}`}
                             className="w-full h-32 object-cover rounded-lg border"
                             onError={(e) => {
@@ -1864,67 +1920,84 @@ export default function EnhancedAdminProducts() {
       </Dialog>
 
       {/* Deletion Error Dialog */}
-      <Dialog open={isDeletionErrorDialogOpen} onOpenChange={setIsDeletionErrorDialogOpen}>
+      <Dialog
+        open={isDeletionErrorDialogOpen}
+        onOpenChange={setIsDeletionErrorDialogOpen}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Cannot Delete Product</DialogTitle>
             <DialogDescription>
-              This product cannot be deleted because it has active orders that haven't been delivered yet.
+              This product cannot be deleted because it has active orders that
+              haven't been delivered yet.
             </DialogDescription>
           </DialogHeader>
-          
+
           {deletionError && (
             <div className="space-y-4">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <h4 className="font-semibold text-amber-800 mb-2">
-                  Product has {deletionError.orderIds?.length || 0} pending {deletionError.orderIds?.length === 1 ? 'order' : 'orders'}
+                  Product has {deletionError.orderIds?.length || 0} pending{" "}
+                  {deletionError.orderIds?.length === 1 ? "order" : "orders"}
                 </h4>
                 <p className="text-sm text-amber-700">
                   The following variants are linked to undelivered orders:
                 </p>
               </div>
-              
-              {deletionError.pendingVariantSkus && deletionError.pendingVariantSkus.length > 0 && (
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>SKU</TableHead>
-                        <TableHead>Order IDs</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {deletionError.pendingVariantSkus.map((sku: string, index: number) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{sku}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {deletionError.orderIds?.map((orderId: string, orderIndex: number) => (
-                                <Badge key={orderIndex} variant="outline" className="text-xs">
-                                  {orderId}
-                                </Badge>
-                              ))}
-                            </div>
-                          </TableCell>
+
+              {deletionError.pendingVariantSkus &&
+                deletionError.pendingVariantSkus.length > 0 && (
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>SKU</TableHead>
+                          <TableHead>Order IDs</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-              
+                      </TableHeader>
+                      <TableBody>
+                        {deletionError.pendingVariantSkus.map(
+                          (sku: string, index: number) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">
+                                {sku}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {deletionError.orderIds?.map(
+                                    (orderId: string, orderIndex: number) => (
+                                      <Badge
+                                        key={orderIndex}
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
+                                        {orderId}
+                                      </Badge>
+                                    ),
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ),
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-700">
-                  <strong>To delete this product:</strong> Wait for all pending orders to be delivered, 
-                  or manually mark the orders as delivered in the Orders section.
+                  <strong>To delete this product:</strong> Wait for all pending
+                  orders to be delivered, or manually mark the orders as
+                  delivered in the Orders section.
                 </p>
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsDeletionErrorDialogOpen(false)}
             >
               Close
@@ -1934,12 +2007,16 @@ export default function EnhancedAdminProducts() {
       </Dialog>
 
       {/* Variant Deletion Confirmation Dialog */}
-      <Dialog open={isVariantDeletionDialogOpen} onOpenChange={setIsVariantDeletionDialogOpen}>
+      <Dialog
+        open={isVariantDeletionDialogOpen}
+        onOpenChange={setIsVariantDeletionDialogOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Variant</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this variant (SKU: {variantToDelete?.variant?.sku})? This action cannot be undone.
+              Are you sure you want to delete this variant (SKU:{" "}
+              {variantToDelete?.variant?.sku})? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1952,10 +2029,7 @@ export default function EnhancedAdminProducts() {
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmVariantDeletion}
-            >
+            <Button variant="destructive" onClick={confirmVariantDeletion}>
               Delete Variant
             </Button>
           </DialogFooter>

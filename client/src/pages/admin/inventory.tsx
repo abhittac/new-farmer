@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import placeholderImage from "../../../../public/uploads/products/No-Image.png";
+import { getImageUrl } from "@/utils/imageUtils";
 interface Product {
   id: number; // variant.id
   name: string; // productName
@@ -367,7 +368,7 @@ export default function AdminInventory() {
                             <div className="flex items-center gap-3">
                               {product.imageUrl && (
                                 <img
-                                  src={product.imageUrl}
+                                  src={getImageUrl(product.imageUrl)}
                                   alt={product.name}
                                   onError={(e) =>
                                     (e.currentTarget.src = placeholderImage)
@@ -552,7 +553,7 @@ export default function AdminInventory() {
                       <div className="flex items-center gap-4">
                         {variant.imageUrl && (
                           <img
-                            src={variant.imageUrl}
+                            src={getImageUrl(variant.imageUrl)}
                             onError={(e) => {
                               e.currentTarget.src = placeholderImage;
                             }}

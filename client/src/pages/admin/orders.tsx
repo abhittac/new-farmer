@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "wouter";
+import { getImageUrl } from "@/utils/imageUtils";
 import { useAuth } from "@/context/AuthContext";
 import placeholderImage from "../../../../public/uploads/products/No-Image.png";
 import { formatSnakeCase } from "@/utils/formatSnakeCase";
@@ -981,7 +982,7 @@ export default function AdminOrders() {
                             <div className="flex items-center space-x-4">
                               {item.product?.imageUrl && (
                                 <img
-                                  src={item.product.imageUrl}
+                                  src={getImageUrl(item.product?.imageUrl)}
                                   alt={item.product.name}
                                   className="w-16 h-16 rounded object-cover"
                                   onError={(e) => {

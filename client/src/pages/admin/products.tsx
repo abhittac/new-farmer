@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { getImageUrl } from "@/utils/imageUtils";
 import {
   Dialog,
   DialogContent,
@@ -525,10 +526,7 @@ export default function AdminProducts() {
                           <TableCell>
                             <div className="w-12 h-12 rounded-md overflow-hidden border">
                               <img
-                                src={product.imageUrl?.startsWith('/') ? 
-                                  `/api/images/serve${product.imageUrl}` : 
-                                  product.imageUrl || "/public/uploads/products/no-profile.jpg"
-                                }
+                                src={getImageUrl(product.imageUrl)}
                                 alt={product.name}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {

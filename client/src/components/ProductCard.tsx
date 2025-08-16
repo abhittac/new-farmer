@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/tooltip";
 import { formatSnakeCase } from "@/utils/formatSnakeCase";
 import { formatUnit } from "@/utils/formatUnit";
+import { getImageUrl } from "@/utils/imageUtils";
 import { useState } from "react";
 interface ProductCardProps {
   product: Product;
@@ -87,11 +88,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             <motion.img
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.5 }}
-              src={
-                product.imageUrl.startsWith("http")
-                  ? product.imageUrl
-                  : `/api/images/serve/${product.imageUrl.replace(/^\/+/, "")}`
-              }
+              src={getImageUrl(product.imageUrl)}
               onError={(e) => {
                 e.currentTarget.src = placeholderImage;
               }}

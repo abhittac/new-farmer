@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getImageUrl } from "@/utils/imageUtils";
 import placeholderImage from "../../../../public/uploads/products/No-Image.png";
 interface ProductGalleryProps {
   mainImage: string;
@@ -23,8 +24,8 @@ export function ProductGallery({
   const actualAdditionalImages =
     additionalImages && additionalImages.length > 0 ? additionalImages : [];
 
-  // Combine all actual images into one array
-  const allImages = [mainImage, ...actualAdditionalImages];
+  // Combine all actual images into one array with proper URLs
+  const allImages = [getImageUrl(mainImage), ...actualAdditionalImages.map(img => getImageUrl(img))];
 
   const handlePrev = () => {
     if (showVideo) {
