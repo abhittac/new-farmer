@@ -909,7 +909,7 @@ export const exportOrders = async (req: Request, res: Response) => {
           ? {
               id: product.id,
               name: product.name,
-              sku: variant?.sku || product.sku,
+              sku: variant?.sku || "",
               imageUrl: product.imageUrl,
             }
           : null;

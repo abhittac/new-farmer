@@ -1704,13 +1704,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           product: {
             id: products.id,
             name: products.name,
-
             imageUrl: products.imageUrl,
             category: products.category,
           },
           variant: {
             id: productVariants.id,
-
+            unit: productVariants.unit,
             sku: productVariants.sku,
           },
         })
@@ -1719,7 +1718,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .leftJoin(
           productVariants,
           eq(orderItems.variantId, productVariants.id)
-        );
+        )
+        .where(inArray(orderItems.orderId, orderIds));
       console.log("debugger2", items);
       // Step 3: Fetch all payments for these orders in one query
       const paymentsList = await db

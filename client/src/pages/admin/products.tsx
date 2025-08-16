@@ -108,8 +108,14 @@ export default function AdminProducts() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isDeletionErrorDialogOpen, setIsDeletionErrorDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+  const [deletionError, setDeletionError] = useState<{
+    message: string;
+    orderIds: number[];
+    pendingVariantSkus: string[];
+  } | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [farmers, setFarmers] = useState<{ id: number; name: string }[]>([]);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -262,8 +268,18 @@ export default function AdminProducts() {
         },
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to delete product");
+        // Check if it's a deletion restriction error
+        if (response.status === 400 && responseData.orderIds) {
+          setDeletionError(responseData);
+          setIsDeletionErrorDialogOpen(true);
+          setIsDeleteDialogOpen(false);
+          setProductToDelete(null);
+          return;
+        }
+        throw new Error(responseData.message || "Failed to delete product");
       }
 
       // Refresh products list
@@ -1117,6 +1133,58 @@ export default function AdminProducts() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deletion Error Dialog */}
+      <Dialog open={isDeletionErrorDialogOpen} onOpenChange={setIsDeletionErrorDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Cannot Delete Product</DialogTitle>
+            <DialogDescription>
+              This product cannot be deleted because it has variants with pending orders.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {deletionError && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium text-sm mb-2">Affected Orders ({deletionError.orderIds.length}):</h4>
+                <div className="max-h-32 overflow-y-auto border rounded p-2 bg-gray-50">
+                  <div className="grid grid-cols-5 gap-2">
+                    {deletionError.orderIds.map((orderId) => (
+                      <span key={orderId} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        #{orderId}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-medium text-sm mb-2">Pending Variant SKUs ({deletionError.pendingVariantSkus.length}):</h4>
+                <div className="max-h-32 overflow-y-auto border rounded p-2 bg-gray-50">
+                  <div className="grid grid-cols-3 gap-2">
+                    {deletionError.pendingVariantSkus.map((sku) => (
+                      <span key={sku} className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                        {sku}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-sm text-gray-600 bg-yellow-50 p-3 rounded border border-yellow-200">
+                <strong>Solution:</strong> Complete or cancel the pending orders first, then try deleting the product again.
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeletionErrorDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
